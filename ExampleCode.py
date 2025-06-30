@@ -17,7 +17,7 @@ class State:
 def is_goal(state):
     for vehicle in state.vehicles:
         if vehicle[0] == "X":  # Xe mục tiêu
-            if vehicle[2] == "H" and vehicle[1] + vehicle[3] - 1 == 5:  # Xe ngang, đạt cột 6
+            if vehicle[3] == "H" and vehicle[2] + vehicle[4] - 1 == 5:  # Xe ngang, đạt cột 6
                 return True
     return False
 
@@ -28,7 +28,7 @@ def get_valid_moves(state):
     
     # Đánh dấu các ô bị chiếm
     for vehicle in state.vehicles:
-        row, col, direction, length = vehicle[1], vehicle[1], vehicle[2], vehicle[3]
+        row, col, direction, length = vehicle[1], vehicle[2], vehicle[3], vehicle[4]
         if direction == "H":
             for c in range(col, col + length):
                 grid[row][c] = 1
@@ -38,7 +38,7 @@ def get_valid_moves(state):
     
     # Kiểm tra từng xe
     for i, vehicle in enumerate(state.vehicles):
-        row, col, direction, length = vehicle[1], vehicle[1], vehicle[2], vehicle[3]
+        row, col, direction, length = vehicle[1], vehicle[2], vehicle[3], vehicle[4]
         if direction == "H":
             # Di chuyển trái
             if col > 0 and grid[row][col-1] == 0:
@@ -60,8 +60,8 @@ def make_move(state, move):
     vehicle_idx, direction = move
     new_vehicles = copy.deepcopy(state.vehicles)
     vehicle = new_vehicles[vehicle_idx]
-    if vehicle[2] == "H":
-        vehicle[1] += direction  # Cập nhật cột
+    if vehicle[3] == "H":
+        vehicle[2] += direction  # Cập nhật cột
     else:
         vehicle[1] += direction  # Cập nhật hàng
     return State(new_vehicles)
@@ -70,7 +70,7 @@ def make_move(state, move):
 def print_grid(state):
     grid = [["."]*6 for _ in range(6)]
     for vehicle in state.vehicles:
-        row, col, direction, length = vehicle[1], vehicle[1], vehicle[2], vehicle[3]
+        row, col, direction, length = vehicle[1], vehicle[2], vehicle[3], vehicle[4]
         vehicle_id = vehicle[0]
         if direction == "H":
             for c in range(col, col + length):
@@ -110,12 +110,12 @@ def bfs_solver(initial_state):
 
 # Map phức tạp
 initial_vehicles = [
-    ["X", 2, "H", 2],  # Xe mục tiêu: hàng 2, cột 0-1, ngang, dài 2
-    ["A", 0, "V", 3],  # Xe tải A: hàng 0-2, cột 2, dọc, dài 3
-    ["B", 0, "H", 2],  # Xe B: hàng 0, cột 3-4, ngang, dài 2
-    ["C", 3, "V", 2],  # Xe C: hàng 3-4, cột 2, dọc, dài 2
-    ["D", 4, "H", 2],  # Xe D: hàng 4, cột 4-5, ngang, dài 2
-    ["E", 3, "V", 3],  # Xe tải E: hàng 3-5, cột 5, dọc, dài 3
+    ["X", 2, 0, "H", 2],  # Xe mục tiêu: hàng 2, cột 0-1, ngang, dài 2
+    ["A", 0, 2, "V", 3],  # Xe tải A: hàng 0-2, cột 2, dọc, dài 3
+    ["B", 0, 3, "H", 2],  # Xe B: hàng 0, cột 3-4, ngang, dài 2
+    ["C", 3, 2, "V", 2],  # Xe C: hàng 3-4, cột 2, dọc, dài 2
+    ["D", 4, 4, "H", 2],  # Xe D: hàng 4, cột 4-5, ngang, dài 2
+    ["E", 3, 5, "V", 3],  # Xe tải E: hàng 3-5, cột 5, dọc, dài 3
 ]
 initial_state = State(initial_vehicles)
 
@@ -130,7 +130,7 @@ if solution:
     for i, move in enumerate(solution, 1):
         vehicle_idx, direction = move
         vehicle_id = current_state.vehicles[vehicle_idx][0]
-        direction_str = "left" if direction == -1 else "right" if current_state.vehicles[vehicle_idx][2] == "H" else "up" if direction == -1 else "down"
+        direction_str = "left" if direction == -1 else "right" if current_state.vehicles[vehicle_idx][3] == "H" else "up" if direction == -1 else "down"
         print(f"Step {i}: Move vehicle {vehicle_id} {direction_str}")
         current_state = make_move(current_state, move)
         print_grid(current_state)
