@@ -1,4 +1,4 @@
-from vehicle import Vehicle
+from .vehicle import Vehicle
 
 class State:
     def __init__(self, vehicles):
