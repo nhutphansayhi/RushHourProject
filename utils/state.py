@@ -57,7 +57,7 @@ class State:
         if not target_vehicle:
             return False
         
-        if target_vehicle.orientation == 'H' and target_vehicle.col + target_vehicle.length - 1 >=4 and target_vehicle.row == 2:
+        if target_vehicle.orientation == 'H' and target_vehicle.col + target_vehicle.length >= 6 and target_vehicle.row == 2:
             return True
         return False
 
