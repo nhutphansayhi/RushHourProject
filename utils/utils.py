@@ -1,7 +1,11 @@
+import os
 from .vehicle import Vehicle
 
 def import_map(map_id):
-    file_name = f"map/map{map_id}.txt"
+    # Get the project root directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    file_name = os.path.join(project_root, "map", f"map{map_id}.txt")
     
     try:
         with open(file_name, "r") as f:
