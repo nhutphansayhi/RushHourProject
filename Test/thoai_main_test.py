@@ -1,7 +1,7 @@
 from utils import Vehicle, State, import_map
 
 def main():
-    vehicles = import_map(1)    
+    vehicles = import_map(12)    
     if not vehicles:
         print("Failed to load map!")
         return

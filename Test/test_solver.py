@@ -1,9 +1,15 @@
+import sys
+import os
+
+# Add parent directory to path to access solver and utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from solver.bfs_solver import bfs_solver
 from utils import import_map, State
 
 def main():
     # Load puzzle
-    vehicles = import_map(1)
+    vehicles = import_map(12)
     initial_state = State(vehicles)
     
     print("Solving puzzle with BFS...")
