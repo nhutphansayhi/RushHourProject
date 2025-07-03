@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-GUI Test Interface for UCS Rush Hour Solver
+Multi-Algorithm Rush Hour Solver Test Interface
+Supports BFS, DFS, UCS, and A* search algorithms
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
@@ -16,12 +17,33 @@ sys.path.insert(0, parent_dir)
 
 from utils.utils import import_map
 from utils.state import State
-from solver.ucs_solver import ucs
 
-class UCSTestGUI:
+# Import all available solvers
+try:
+    from solver.bfs_solver import bfs_solver
+except ImportError:
+    bfs_solver = None
+
+try:
+    from solver.dfs_solver import dfs
+    dfs_solver = dfs  # Rename for consistency
+except ImportError:
+    dfs_solver = None
+
+try:
+    from solver.ucs_solver import ucs
+except ImportError:
+    ucs = None
+
+try:
+    from solver.a_star_solver import a_star_solver
+except ImportError:
+    a_star_solver = None
+
+class MultiAlgorithmTestGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("UCS Rush Hour Solver - Interactive Test Interface")
+        self.root.title("Rush Hour Multi-Algorithm Solver - Test Interface")
         self.root.geometry("1200x800")
         
         # Variables
@@ -33,6 +55,22 @@ class UCSTestGUI:
         self.is_running_test = False
         self.is_auto_playing = False
         self.selected_vehicle = None
+        
+        # Available algorithms
+        self.algorithms = {}
+        if bfs_solver:
+            self.algorithms['BFS'] = {'func': bfs_solver, 'name': 'Breadth-First Search'}
+        if dfs_solver:
+            self.algorithms['DFS'] = {'func': dfs_solver, 'name': 'Depth-First Search'}
+        if ucs:
+            self.algorithms['UCS'] = {'func': ucs, 'name': 'Uniform Cost Search'}
+        # A* is not implemented yet
+        # if a_star_solver:
+        #     self.algorithms['A*'] = {'func': a_star_solver, 'name': 'A* Search'}
+        
+        if not self.algorithms:
+            messagebox.showerror("Error", "No solver algorithms found!")
+            return
         
         # Colors for vehicles
         self.vehicle_colors = {
@@ -69,26 +107,37 @@ class UCSTestGUI:
         first_row = ttk.Frame(control_frame)
         first_row.grid(row=0, column=0, sticky="ew", pady=(0, 5))
         
+        # Algorithm selection
+        ttk.Label(first_row, text="Algorithm:").grid(row=0, column=0, padx=(0, 5))
+        self.algorithm_var = tk.StringVar(value=list(self.algorithms.keys())[0] if self.algorithms else "")
+        algorithm_combo = ttk.Combobox(first_row, textvariable=self.algorithm_var, 
+                                     values=list(self.algorithms.keys()), width=10, state="readonly")
+        algorithm_combo.grid(row=0, column=1, padx=(0, 10))
+        
         # Map selection
-        ttk.Label(first_row, text="Select Map:").grid(row=0, column=0, padx=(0, 5))
+        ttk.Label(first_row, text="Map:").grid(row=0, column=2, padx=(0, 5))
         self.map_var = tk.StringVar(value="1")
         map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, 13)], width=5)
-        map_combo.grid(row=0, column=1, padx=(0, 10))
+        map_combo.grid(row=0, column=3, padx=(0, 10))
         
         # Load map button
         self.load_button = ttk.Button(first_row, text="Load Map", command=self.load_map)
-        self.load_button.grid(row=0, column=2, padx=(0, 10))
+        self.load_button.grid(row=0, column=4, padx=(0, 10))
         
         # Single test button
-        self.test_button = ttk.Button(first_row, text="Solve with UCS", command=self.test_single_map)
-        self.test_button.grid(row=0, column=3, padx=(0, 10))
+        self.test_button = ttk.Button(first_row, text="Solve Puzzle", command=self.test_single_map)
+        self.test_button.grid(row=0, column=5, padx=(0, 10))
         
         # Comprehensive test button
-        self.comp_test_button = ttk.Button(first_row, text="Run All Tests", command=self.run_comprehensive_tests)
-        self.comp_test_button.grid(row=0, column=4, padx=(0, 10))
+        self.comp_test_button = ttk.Button(first_row, text="Test All Maps", command=self.run_comprehensive_tests)
+        self.comp_test_button.grid(row=0, column=6, padx=(0, 10))
+        
+        # Compare algorithms button
+        self.compare_button = ttk.Button(first_row, text="Compare All", command=self.compare_algorithms)
+        self.compare_button.grid(row=0, column=7, padx=(0, 10))
         
         # Clear results button
-        ttk.Button(first_row, text="Clear Results", command=self.clear_results).grid(row=0, column=5, padx=(0, 10))
+        ttk.Button(first_row, text="Clear", command=self.clear_results).grid(row=0, column=8, padx=(0, 10))
         
         # Second row of controls - Interactive Solution Controls
         second_row = ttk.Frame(control_frame)
@@ -245,8 +294,15 @@ class UCSTestGUI:
     def _test_single_map_thread(self, map_id):
         """Thread function for testing a single map"""
         try:
+            algorithm_name = self.algorithm_var.get()
+            algorithm_info = self.algorithms.get(algorithm_name)
+            
+            if not algorithm_info:
+                self.log_result(f"❌ Algorithm '{algorithm_name}' not available")
+                return
+            
             self.log_result(f"{'='*60}")
-            self.log_result(f"Testing Map {map_id}")
+            self.log_result(f"Testing Map {map_id} with {algorithm_info['name']}")
             self.log_result(f"{'='*60}")
             
             # Load vehicles
@@ -267,7 +323,7 @@ class UCSTestGUI:
             
             # Update GUI
             self.root.after(0, lambda: self.update_board_display(initial_state))
-            self.root.after(0, lambda: self.status_label.config(text=f"Testing Map {map_id}..."))
+            self.root.after(0, lambda: self.status_label.config(text=f"Testing Map {map_id} with {algorithm_name}..."))
             
             # Check if already solved
             if initial_state.is_solved():
@@ -276,16 +332,37 @@ class UCSTestGUI:
                 return
             
             # Run solver
-            self.log_result("🚀 Running UCS solver...")
+            self.log_result(f"🚀 Running {algorithm_info['name']} solver...")
             start_time = time.time()
             
-            result = ucs(initial_state)
+            result = algorithm_info['func'](initial_state)
             end_time = time.time()
             solve_time = end_time - start_time
             
-            if result[0] is not None:
-                cost, final_state, path = result
-                steps = len(path)
+            if result and result[0] is not None:
+                # Handle different return formats
+                if algorithm_name == 'UCS':
+                    cost, final_state, path = result
+                    steps = len(path)
+                    nodes_expanded = None  # UCS doesn't return this
+                elif algorithm_name == 'DFS':
+                    # DFS returns just the path or None
+                    if isinstance(result, list):
+                        path = result
+                        steps = len(path) if path else 0
+                        cost = steps
+                        nodes_expanded = None
+                    else:
+                        # No solution
+                        path = []
+                        steps = 0
+                        cost = 0
+                        nodes_expanded = None
+                elif algorithm_name == 'BFS':
+                    # BFS, A* typically return (path, nodes_expanded, time)
+                    path, nodes_expanded, _ = result
+                    steps = len(path) if path else 0
+                    cost = steps  # Use steps as cost for other algorithms
                 
                 # Store solution for interactive playback
                 self.solution_path = path
@@ -296,9 +373,15 @@ class UCSTestGUI:
                 self.log_result(f"   Steps: {steps}")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
                 
+                if nodes_expanded is not None:
+                    self.log_result(f"   Nodes expanded: {nodes_expanded}")
+                
+                # Create final state by applying all moves
+                final_state = self._apply_solution_to_state(initial_state, path)
+                
                 # Update board to show final state
                 self.root.after(0, lambda: self.update_board_display(final_state))
-                self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: SOLVED (Cost: {cost}, Steps: {steps})"))
+                self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: SOLVED with {algorithm_name} (Cost: {cost})"))
                 
                 # Enable interactive controls
                 self.root.after(0, self._update_playback_controls)
@@ -308,14 +391,19 @@ class UCSTestGUI:
                 # Show solution path
                 if steps <= 20:  # Show path for reasonable length solutions
                     self.log_result(f"\n📋 Solution Path:")
-                    for i, (vehicle_id, direction) in enumerate(path, 1):
-                        self.log_result(f"   {i:2d}. Move '{vehicle_id}' {direction}")
+                    for i, move in enumerate(path, 1):
+                        if isinstance(move, tuple) and len(move) == 2:
+                            vehicle_id, direction = move
+                            self.log_result(f"   {i:2d}. Move '{vehicle_id}' {direction}")
+                        else:
+                            self.log_result(f"   {i:2d}. {move}")
                 else:
                     self.log_result(f"\n📋 Solution path has {steps} steps (too long to display)")
                 
                 # Store result
                 self.test_results.append({
                     'map_id': map_id,
+                    'algorithm': algorithm_name,
                     'success': True,
                     'cost': cost,
                     'steps': steps,
@@ -325,17 +413,18 @@ class UCSTestGUI:
             else:
                 self.log_result(f"❌ NO SOLUTION FOUND")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
-                self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution"))
+                self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution with {algorithm_name}"))
                 
                 self.test_results.append({
                     'map_id': map_id,
+                    'algorithm': algorithm_name,
                     'success': False,
                     'time': solve_time
                 })
             
         except Exception as e:
             self.log_result(f"💥 ERROR: {str(e)}")
-            self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Error"))
+            self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Error with {algorithm_name}"))
         
         finally:
             # Re-enable buttons
@@ -359,7 +448,14 @@ class UCSTestGUI:
     def _comprehensive_tests_thread(self):
         """Thread function for comprehensive testing"""
         try:
-            self.log_result(f"🚀 Starting Comprehensive UCS Tests")
+            algorithm_name = self.algorithm_var.get()
+            algorithm_info = self.algorithms.get(algorithm_name)
+            
+            if not algorithm_info:
+                self.log_result(f"❌ Algorithm '{algorithm_name}' not available")
+                return
+            
+            self.log_result(f"🚀 Starting Comprehensive {algorithm_info['name']} Tests")
             self.log_result(f"{'='*80}")
             
             test_maps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # Test maps 1-10
@@ -379,19 +475,62 @@ class UCSTestGUI:
                 self.root.after(0, lambda mid=map_id: self.status_label.config(text=f"Testing Map {mid}..."))
                 
                 try:
+                    # Get selected algorithm
+                    algorithm_name = self.algorithm_var.get()
+                    algorithm_info = self.algorithms.get(algorithm_name)
+                    
+                    if not algorithm_info:
+                        self.log_result(f"Map {map_id}: ❌ Algorithm '{algorithm_name}' not available")
+                        continue
+                    
                     # Create state and solve
                     initial_state = State(vehicles)
                     self.root.after(0, lambda: self.update_board_display(initial_state))
                     
                     start_time = time.time()
-                    result = ucs(initial_state)
+                    result = algorithm_info['func'](initial_state)
                     end_time = time.time()
                     solve_time = end_time - start_time
                     total_time += solve_time
                     
-                    if result[0] is not None:
-                        cost, final_state, path = result
-                        steps = len(path)
+                    if result is not None:
+                        # Handle different return formats
+                        if algorithm_name == 'UCS':
+                            cost, final_state, path = result
+                            steps = len(path)
+                        elif algorithm_name == 'DFS':
+                            # DFS returns just the path or None
+                            if isinstance(result, list):
+                                path = result
+                                steps = len(path) if path else 0
+                                cost = steps
+                            else:
+                                # No solution
+                                self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
+                                self.test_results.append({
+                                    'map_id': map_id,
+                                    'algorithm': algorithm_name,
+                                    'success': False,
+                                    'time': solve_time
+                                })
+                                continue
+                        else:
+                            # BFS, A* typically return (path, nodes_expanded, time)
+                            if result[0] is not None:
+                                path, nodes_expanded, _ = result
+                                steps = len(path) if path else 0
+                                cost = steps  # Use steps as cost for other algorithms
+                            else:
+                                # No solution
+                                self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
+                                self.test_results.append({
+                                    'map_id': map_id,
+                                    'algorithm': algorithm_name,
+                                    'success': False,
+                                    'time': solve_time
+                                })
+                                continue
+                        
                         successful_tests += 1
                         total_cost += cost
                         total_steps += steps
@@ -400,6 +539,7 @@ class UCSTestGUI:
                         
                         self.test_results.append({
                             'map_id': map_id,
+                            'algorithm': algorithm_name,
                             'success': True,
                             'cost': cost,
                             'steps': steps,
@@ -409,6 +549,7 @@ class UCSTestGUI:
                         self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
                         self.test_results.append({
                             'map_id': map_id,
+                            'algorithm': algorithm_name,
                             'success': False,
                             'time': solve_time
                         })
@@ -446,6 +587,150 @@ class UCSTestGUI:
         self.is_running_test = False
         self.test_button.config(state=tk.NORMAL)
         self.comp_test_button.config(state=tk.NORMAL)
+        self.progress_bar.stop()
+    
+    def compare_algorithms(self):
+        """Compare all algorithms on selected map or multiple maps"""
+        if self.is_running_test:
+            return
+        
+        map_id = int(self.map_var.get())
+        self.is_running_test = True
+        self.test_button.config(state=tk.DISABLED)
+        self.comp_test_button.config(state=tk.DISABLED)
+        self.compare_button.config(state=tk.DISABLED)
+        self.progress_bar.start()
+        
+        # Run comparison in separate thread
+        thread = threading.Thread(target=self._compare_algorithms_thread, args=(map_id,))
+        thread.daemon = True
+        thread.start()
+    
+    def _compare_algorithms_thread(self, map_id):
+        """Thread function for algorithm comparison"""
+        try:
+            self.log_result(f"{'='*80}")
+            self.log_result(f"🔬 ALGORITHM COMPARISON - Map {map_id}")
+            self.log_result(f"{'='*80}")
+            
+            # Load vehicles
+            vehicles = import_map(map_id)
+            if not vehicles:
+                self.log_result(f"❌ Failed to load map{map_id}.txt")
+                return
+            
+            initial_state = State(vehicles)
+            self.root.after(0, lambda: self.update_board_display(initial_state))
+            
+            results = {}
+            
+            # Test each algorithm
+            for algo_name, algo_info in self.algorithms.items():
+                self.log_result(f"\nTesting {algo_info['name']}...")
+                self.root.after(0, lambda alg=algo_name: self.status_label.config(text=f"Testing {alg} on Map {map_id}..."))
+                
+                try:
+                    start_time = time.time()
+                    result = algo_info['func'](initial_state)
+                    end_time = time.time()
+                    solve_time = end_time - start_time
+                    
+                    if result is not None:
+                        # Handle different return formats
+                        if algo_name == 'UCS':
+                            cost, final_state, path = result
+                            steps = len(path)
+                            nodes_expanded = None
+                        elif algo_name == 'DFS':
+                            # DFS returns just the path or None
+                            if isinstance(result, list):
+                                path = result
+                                steps = len(path) if path else 0
+                                cost = steps
+                                nodes_expanded = None
+                            else:
+                                # No solution
+                                results[algo_name] = {
+                                    'success': False,
+                                    'time': solve_time
+                                }
+                                self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
+                                continue
+                        elif algo_name == 'BFS':
+                            # BFS, A* typically return (path, nodes_expanded, time)
+                            if result[0] is not None:
+                                path, nodes_expanded, _ = result
+                                steps = len(path) if path else 0
+                                cost = steps
+                            else:
+                                results[algo_name] = {
+                                    'success': False,
+                                    'time': solve_time
+                                }
+                                self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
+                                continue
+                        
+                        results[algo_name] = {
+                            'success': True,
+                            'cost': cost,
+                            'steps': steps,
+                            'time': solve_time,
+                            'nodes_expanded': nodes_expanded
+                        }
+                        
+                        nodes_str = f", Nodes: {nodes_expanded}" if nodes_expanded is not None else ""
+                        self.log_result(f"   ✅ {algo_name}: Cost={cost}, Steps={steps}, Time={solve_time:.3f}s{nodes_str}")
+                    else:
+                        results[algo_name] = {
+                            'success': False,
+                            'time': solve_time
+                        }
+                        self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
+                        
+                except Exception as e:
+                    results[algo_name] = {
+                        'success': False,
+                        'error': str(e)
+                    }
+                    self.log_result(f"   💥 {algo_name}: Error - {str(e)}")
+            
+            # Summary comparison
+            self.log_result(f"\n{'='*60}")
+            self.log_result(f"📊 COMPARISON SUMMARY")
+            self.log_result(f"{'='*60}")
+            
+            successful_algos = [name for name, result in results.items() if result.get('success', False)]
+            
+            if successful_algos:
+                self.log_result(f"Successful algorithms: {', '.join(successful_algos)}")
+                
+                # Find best by different metrics
+                best_time = min(successful_algos, key=lambda x: results[x]['time'])
+                best_cost = min(successful_algos, key=lambda x: results[x]['cost'])
+                
+                self.log_result(f"Fastest: {best_time} ({results[best_time]['time']:.3f}s)")
+                self.log_result(f"Lowest cost: {best_cost} (cost={results[best_cost]['cost']})")
+                
+                # Show nodes expanded comparison if available
+                algos_with_nodes = [name for name in successful_algos if results[name].get('nodes_expanded') is not None]
+                if algos_with_nodes:
+                    best_nodes = min(algos_with_nodes, key=lambda x: results[x]['nodes_expanded'])
+                    self.log_result(f"Fewest nodes: {best_nodes} ({results[best_nodes]['nodes_expanded']} nodes)")
+            else:
+                self.log_result("No algorithms found a solution.")
+                
+        except Exception as e:
+            self.log_result(f"💥 Comparison error: {str(e)}")
+        
+        finally:
+            self.root.after(0, self._comparison_complete)
+    
+    def _comparison_complete(self):
+        """Called when comparison is complete"""
+        self.is_running_test = False
+        self.test_button.config(state=tk.NORMAL)
+        self.comp_test_button.config(state=tk.NORMAL)
+        self.compare_button.config(state=tk.NORMAL)
         self.progress_bar.stop()
     
     def load_map(self):
@@ -643,6 +928,15 @@ class UCSTestGUI:
         
         return State(new_vehicles)
     
+    def _apply_solution_to_state(self, initial_state, path):
+        """Apply a solution path to get the final state"""
+        current_state = initial_state
+        for move in path:
+            if isinstance(move, tuple) and len(move) == 2:
+                vehicle_id, direction = move
+                current_state = self._apply_move(current_state, vehicle_id, direction)
+        return current_state
+    
     def _update_step_display(self):
         """Update the step display label"""
         total_steps = len(self.solution_path)
@@ -732,8 +1026,8 @@ class UCSTestGUI:
 
 def main():
     root = tk.Tk()
-    app = UCSTestGUI(root)
+    app = MultiAlgorithmTestGUI(root)
     root.mainloop()
-
+  
 if __name__ == "__main__":
     main()
