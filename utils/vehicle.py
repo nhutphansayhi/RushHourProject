@@ -26,6 +26,10 @@ class Vehicle:
         elif orientation.upper() == 'V' and row + length > 6:
             raise ValueError(f"Vertical vehicle extends beyond board: row={row}, length={length}")
 
+    def copy(self):
+        """Create a copy of this vehicle"""
+        return Vehicle(self.id, self.row, self.col, self.length, self.orientation, self.is_target)
+
     def get_occupied_possitions(self):
         positions_list = []
         if self.orientation == 'H':

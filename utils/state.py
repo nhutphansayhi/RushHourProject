@@ -114,3 +114,33 @@ class State:
                 new_vehicles.append(v)
         
         return State(new_vehicles)
+    
+    def __hash__(self):
+        """Make State objects hashable for use in sets and as dict keys."""
+        #return hash(self.to_string())
+        vehicle_data = []
+        for vehicle in self.vehicles: 
+            v_data = (vehicle.id, vehicle.row, vehicle.col, vehicle.length, vehicle.orientation)
+            vehicle_data.append(v_data)
+        return hash(tuple(sorted(vehicle_data)))
+    
+    def __eq__(self, other):
+        """Define equality for State objects."""
+        if not isinstance(other, State):
+            return False
+        
+        #return self.to_string() == other.to_string()
+        self_data = []
+        other_data = []
+        
+        for vehicle in self.vehicles: 
+            v_data = (vehicle.id, vehicle.row, vehicle.col, vehicle.length, vehicle.orientation)
+            self_data.append(v_data)
+            
+        for vehicle in other.vehicles: 
+            v_data = (vehicle.id, vehicle.row, vehicle.col, vehicle.length, vehicle.orientation)
+            other_data.append(v_data)
+            
+        return sorted(self_data) == sorted(other_data)
+    
+        
