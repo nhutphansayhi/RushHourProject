@@ -5,6 +5,7 @@ Supports BFS, DFS, UCS, and A* search algorithms
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
+from PIL import Image, ImageTk
 import sys
 import os
 import time
@@ -25,8 +26,7 @@ except ImportError:
     bfs_solver = None
 
 try:
-    from solver.dfs_solver import dfs
-    dfs_solver = dfs  # Rename for consistency
+    from solver.dfs_solver import dfs_solver
 except ImportError:
     dfs_solver = None
 
@@ -71,6 +71,8 @@ class MultiAlgorithmTestGUI:
         if not self.algorithms:
             messagebox.showerror("Error", "No solver algorithms found!")
             return
+        
+        self.image_refs = []
         
         # Colors for vehicles
         self.vehicle_colors = {
@@ -164,30 +166,6 @@ class MultiAlgorithmTestGUI:
         self.step_label = ttk.Label(second_row, text="Step: 0/0", font=('Arial', 10))
         self.step_label.grid(row=0, column=6, padx=(20, 0))
         
-        # Third row - Manual controls
-        third_row = ttk.Frame(control_frame)
-        third_row.grid(row=2, column=0, sticky="ew", pady=(5, 0))
-        
-        ttk.Label(third_row, text="Manual Control:").grid(row=0, column=0, padx=(0, 5))
-        
-        self.manual_up = ttk.Button(third_row, text="↑", command=lambda: self.manual_move('up'), state=tk.DISABLED, width=3)
-        self.manual_up.grid(row=0, column=1, padx=2)
-        
-        self.manual_down = ttk.Button(third_row, text="↓", command=lambda: self.manual_move('down'), state=tk.DISABLED, width=3)
-        self.manual_down.grid(row=0, column=2, padx=2)
-        
-        self.manual_left = ttk.Button(third_row, text="←", command=lambda: self.manual_move('left'), state=tk.DISABLED, width=3)
-        self.manual_left.grid(row=0, column=3, padx=2)
-        
-        self.manual_right = ttk.Button(third_row, text="→", command=lambda: self.manual_move('right'), state=tk.DISABLED, width=3)
-        self.manual_right.grid(row=0, column=4, padx=2)
-        
-        self.manual_reset = ttk.Button(third_row, text="Reset Manual", command=self.reset_manual, state=tk.DISABLED)
-        self.manual_reset.grid(row=0, column=5, padx=(10, 0))
-        
-        self.selected_label = ttk.Label(third_row, text="Click a vehicle to select", font=('Arial', 9), foreground="gray")
-        self.selected_label.grid(row=0, column=6, padx=(20, 0))
-        
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(control_frame, variable=self.progress_var, mode='indeterminate')
@@ -197,15 +175,19 @@ class MultiAlgorithmTestGUI:
         board_frame = ttk.LabelFrame(main_frame, text="Rush Hour Board", padding="10")
         board_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
         
-        # Game grid
-        self.grid_buttons = []
-        for row in range(6):
-            button_row = []
-            for col in range(6):
-                btn = tk.Button(board_frame, width=4, height=2, font=('Arial', 12, 'bold'))
-                btn.grid(row=row, column=col, padx=1, pady=1)
-                button_row.append(btn)
-            self.grid_buttons.append(button_row)
+        # Game grid        
+        global CELL_SIZE
+        CELL_SIZE = 80  # tile size in pixels
+
+        self.canvas = tk.Canvas(board_frame, width=6 * CELL_SIZE, height=6 * CELL_SIZE, bg='white')
+        self.canvas.grid(row=0, column=0, columnspan=7)
+
+        # Draw static grid
+        for i in range(7):  # vertical lines
+            self.canvas.create_line(i * CELL_SIZE, 0, i * CELL_SIZE, 6 * CELL_SIZE, fill='gray')
+        for j in range(7):  # horizontal lines
+            self.canvas.create_line(0, j * CELL_SIZE, 6 * CELL_SIZE, j * CELL_SIZE, fill='gray')
+
         
         # Exit indicator
         exit_label = tk.Label(board_frame, text="EXIT →", font=('Arial', 10, 'bold'), fg='red')
@@ -239,27 +221,52 @@ class MultiAlgorithmTestGUI:
     
     def update_board_display(self, state):
         """Update the visual display of the board"""
-        # Clear all buttons
-        for row in range(6):
-            for col in range(6):
-                self.grid_buttons[row][col].config(
-                    text='',
-                    bg='lightgray',
-                    relief=tk.RAISED
-                )
+        
+        # Clear previous vehicles
+        self.canvas.delete("vehicle")
         
         # Draw vehicles
-        if state:
-            for vehicle in state.vehicles:
-                color = self.vehicle_colors.get(vehicle.id, '#CCCCCC')
-                positions = vehicle.get_occupied_possitions()
-                for row, col in positions:
-                    if 0 <= row < 6 and 0 <= col < 6:
-                        self.grid_buttons[row][col].config(
-                            text=vehicle.id,
-                            bg=color,
-                            relief=tk.SOLID
-                        )
+        
+        if not state:
+            return
+
+        for vehicle in state.vehicles:
+            color = self.vehicle_colors.get(vehicle.id, '#AAAAAA')
+            positions = vehicle.get_occupied_possitions()
+            if not positions:
+                continue
+
+            x0 = positions[0][1] * CELL_SIZE
+            y0 = positions[0][0] * CELL_SIZE
+
+            if vehicle.orientation == 'H':
+                x1 = x0 + vehicle.length * CELL_SIZE
+                y1 = y0 + CELL_SIZE
+            else:
+                x1 = x0 + CELL_SIZE
+                y1 = y0 + vehicle.length * CELL_SIZE
+
+            img = self.get_resized_car_image(vehicle)
+            if img:
+                self.canvas.create_image(x0, y0, anchor="nw", image=img, tags="vehicle")
+                self.image_refs.append(img) # Prevent garbage collection
+
+            else:
+                # fallback to rectangle if image missing
+                self.canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline='black', tags="vehicle")
+                self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
+
+    def get_resized_car_image(self, vehicle):
+        path = os.path.join("gui", f"images\{vehicle.id}.png")
+        try:
+            image = Image.open(path)
+            width = CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else CELL_SIZE
+            height = CELL_SIZE * vehicle.length if vehicle.orientation == 'V' else CELL_SIZE
+            image = image.resize((width, height))
+            return ImageTk.PhotoImage(image)
+        except:
+            return None
+
     
     def log_result(self, message):
         """Add a message to the results text area"""
@@ -386,7 +393,6 @@ class MultiAlgorithmTestGUI:
                 # Enable interactive controls
                 self.root.after(0, self._update_playback_controls)
                 self.root.after(0, self._update_step_display)
-                self.root.after(0, self._make_vehicles_clickable)
                 
                 # Show solution path
                 if steps <= 20:  # Show path for reasonable length solutions
@@ -755,12 +761,6 @@ class MultiAlgorithmTestGUI:
             self.status_label.config(text=f"Map {map_id} loaded")
             self.step_label.config(text="Step: 0/0")
             
-            # Make vehicle buttons clickable for selection
-            self._make_vehicles_clickable()
-            
-            # Enable manual controls
-            self._update_manual_controls()
-            
             self.log_result(f"Map {map_id} loaded with {len(vehicles)} vehicles")
             
         except ValueError:
@@ -828,71 +828,6 @@ class MultiAlgorithmTestGUI:
         self.next_step()
         self.root.after(1000, self._auto_play_step)  # 1 second delay
     
-    def manual_move(self, direction):
-        """Move the selected vehicle manually"""
-        if not self.selected_vehicle or not self.current_state:
-            return
-        
-        try:
-            # Find the selected vehicle in current state
-            vehicle_to_move = None
-            for vehicle in self.current_state.vehicles:
-                if vehicle.id == self.selected_vehicle:
-                    vehicle_to_move = vehicle
-                    break
-            
-            if not vehicle_to_move:
-                return
-            
-            # Create a new state with the moved vehicle
-            new_vehicles = []
-            for vehicle in self.current_state.vehicles:
-                if vehicle.id == self.selected_vehicle:
-                    # Try to move this vehicle
-                    new_vehicle = vehicle.copy()
-                    if direction == 'up':
-                        new_vehicle.row -= 1
-                    elif direction == 'down':
-                        new_vehicle.row += 1
-                    elif direction == 'left':
-                        new_vehicle.col -= 1
-                    elif direction == 'right':
-                        new_vehicle.col += 1
-                    
-                    # Check if move is valid
-                    if self._is_valid_vehicle_position(new_vehicle, new_vehicles):
-                        new_vehicles.append(new_vehicle)
-                    else:
-                        self.status_label.config(text="Invalid move!")
-                        return
-                else:
-                    new_vehicles.append(vehicle)
-            
-            # Update current state
-            new_state = State(new_vehicles)
-            self.current_state = new_state
-            self.update_board_display(new_state)
-            
-            # Check if solved
-            if new_state.is_solved():
-                self.status_label.config(text="🎉 SOLVED! Well done!")
-                messagebox.showinfo("Congratulations!", "You solved the puzzle manually!")
-            else:
-                self.status_label.config(text=f"Moved {self.selected_vehicle} {direction}")
-                
-        except Exception as e:
-            self.status_label.config(text=f"Move failed: {str(e)}")
-    
-    def reset_manual(self):
-        """Reset manual changes"""
-        if self.original_state:
-            self.current_state = self.original_state
-            self.selected_vehicle = None
-            self.update_board_display(self.current_state)
-            self.selected_label.config(text="Click a vehicle to select", foreground="gray")
-            self.status_label.config(text="Manual changes reset")
-            self._update_manual_controls()
-    
     def _apply_solution_up_to_step(self):
         """Apply solution moves up to the current step"""
         if not self.solution_path or not self.original_state:
@@ -954,75 +889,6 @@ class MultiAlgorithmTestGUI:
         self.play_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
         self.next_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
         self.end_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
-    
-    def _make_vehicles_clickable(self):
-        """Make vehicle buttons clickable for selection"""
-        if not self.current_state:
-            return
-        
-        # Add click handlers to grid buttons
-        for row in range(6):
-            for col in range(6):
-                self.grid_buttons[row][col].config(
-                    command=lambda r=row, c=col: self._on_vehicle_click(r, c)
-                )
-    
-    def _on_vehicle_click(self, row, col):
-        """Handle vehicle selection"""
-        if not self.current_state:
-            return
-        
-        # Find vehicle at this position
-        for vehicle in self.current_state.vehicles:
-            positions = vehicle.get_occupied_possitions()
-            if (row, col) in positions:
-                self.selected_vehicle = vehicle.id
-                self.selected_label.config(
-                    text=f"Selected: {vehicle.id}",
-                    foreground="blue"
-                )
-                self._update_manual_controls()
-                return
-        
-        # No vehicle at this position
-        self.selected_vehicle = None
-        self.selected_label.config(text="Click a vehicle to select", foreground="gray")
-        self._update_manual_controls()
-    
-    def _update_manual_controls(self):
-        """Update the state of manual control buttons"""
-        has_selection = bool(self.selected_vehicle)
-        state = tk.NORMAL if has_selection else tk.DISABLED
-        
-        self.manual_up.config(state=state)
-        self.manual_down.config(state=state)
-        self.manual_left.config(state=state)
-        self.manual_right.config(state=state)
-        self.manual_reset.config(state=tk.NORMAL if self.current_state and self.original_state else tk.DISABLED)
-    
-    def _is_valid_vehicle_position(self, vehicle, other_vehicles):
-        """Check if a vehicle position is valid"""
-        positions = vehicle.get_occupied_possitions()
-        
-        # Check bounds
-        for row, col in positions:
-            if row < 0 or row >= 6 or col < 0 or col >= 6:
-                return False
-        
-        # Check collision with other vehicles  
-        other_occupied_positions = set()
-        for other_vehicle in other_vehicles:
-            if other_vehicle.id != vehicle.id:
-                other_positions = other_vehicle.get_occupied_possitions()
-                for pos in other_positions:
-                    other_occupied_positions.add(pos)
-        
-        # Check if any position conflicts
-        for pos in positions:
-            if pos in other_occupied_positions:
-                return False
-        
-        return True
 
 def main():
     root = tk.Tk()
