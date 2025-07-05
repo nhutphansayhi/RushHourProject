@@ -1,4 +1,4 @@
-def dfs(start_state, max_depth=1000):
+def dfs_solver(start_state, max_depth=1000):
     stack = [(start_state, [])]  # (current_state, path_so_far)
     visited = set()
 
