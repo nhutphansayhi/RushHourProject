@@ -347,11 +347,16 @@ class MultiAlgorithmTestGUI:
             solve_time = end_time - start_time
             
             if result and result[0] is not None:
+                # Initialize variables
+                cost = 0
+                steps = 0
+                path = []
+                nodes_expanded = None
+                
                 # Handle different return formats
                 if algorithm_name == 'UCS':
-                    cost, final_state, path = result
+                    cost, nodes_expanded, path = result
                     steps = len(path)
-                    nodes_expanded = None  # UCS doesn't return this
                 elif algorithm_name == 'DFS':
                     # DFS returns just the path or None
                     if isinstance(result, list):
@@ -366,10 +371,20 @@ class MultiAlgorithmTestGUI:
                         cost = 0
                         nodes_expanded = None
                 elif algorithm_name == 'BFS':
-                    # BFS, A* typically return (path, nodes_expanded, time)
+                    # BFS typically returns (path, nodes_expanded, time)
                     path, nodes_expanded, _ = result
                     steps = len(path) if path else 0
                     cost = steps  # Use steps as cost for other algorithms
+                else:
+                    # Generic case for other algorithms
+                    if isinstance(result, (list, tuple)) and len(result) >= 3:
+                        path, nodes_expanded, _ = result
+                        steps = len(path) if path else 0
+                        cost = steps
+                    elif isinstance(result, list):
+                        path = result
+                        steps = len(path) if path else 0
+                        cost = steps
                 
                 # Store solution for interactive playback
                 self.solution_path = path
@@ -636,6 +651,12 @@ class MultiAlgorithmTestGUI:
                 self.root.after(0, lambda alg=algo_name: self.status_label.config(text=f"Testing {alg} on Map {map_id}..."))
                 
                 try:
+                    # Initialize variables
+                    cost = 0
+                    steps = 0
+                    path = []
+                    nodes_expanded = None
+                    
                     start_time = time.time()
                     result = algo_info['func'](initial_state)
                     end_time = time.time()
@@ -644,9 +665,8 @@ class MultiAlgorithmTestGUI:
                     if result is not None:
                         # Handle different return formats
                         if algo_name == 'UCS':
-                            cost, final_state, path = result
+                            cost, nodes_expanded, path = result
                             steps = len(path)
-                            nodes_expanded = None
                         elif algo_name == 'DFS':
                             # DFS returns just the path or None
                             if isinstance(result, list):
