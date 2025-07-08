@@ -40,7 +40,13 @@ try:
 except ImportError:
     a_star_solver = None
 
+total_maps = 12
+
 class MultiAlgorithmTestGUI:
+    
+    CELL_SIZE = 50  # tile size in pixels
+    NUM_OF_MAPS = 12 # total testing maps
+    
     def __init__(self, root):
         self.root = root
         self.root.title("Rush Hour Multi-Algorithm Solver - Test Interface")
@@ -95,7 +101,7 @@ class MultiAlgorithmTestGUI:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
         
-        # Configure grid weights
+        # # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
@@ -118,28 +124,27 @@ class MultiAlgorithmTestGUI:
         
         # Map selection
         ttk.Label(first_row, text="Map:").grid(row=0, column=2, padx=(0, 5))
-        self.map_var = tk.StringVar(value="1")
-        map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, 13)], width=5)
-        map_combo.grid(row=0, column=3, padx=(0, 10))
+
+        # Decrease button
+        self.decrease_map_button = ttk.Button(first_row, text="←", width=2, command=self.decrease_map)
+        self.decrease_map_button.grid(row=0, column=3, padx=(0, 2))
+
+        # Map combobox
+        self.map_var = tk.StringVar(value="")
+        map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, self.NUM_OF_MAPS + 1)], width=5, state="readonly")
+        map_combo.grid(row=0, column=4, padx=(0, 2))
+        map_combo.bind("<<ComboboxSelected>>", lambda e: self.load_map())
+
+        # Increase button
+        self.increase_map_button = ttk.Button(first_row, text="→", width=2, command=self.increase_map)
+        self.increase_map_button.grid(row=0, column=5, padx=(0, 10))
         
-        # Load map button
-        self.load_button = ttk.Button(first_row, text="Load Map", command=self.load_map)
-        self.load_button.grid(row=0, column=4, padx=(0, 10))
-        
-        # Single test button
-        self.test_button = ttk.Button(first_row, text="Solve Puzzle", command=self.test_single_map)
-        self.test_button.grid(row=0, column=5, padx=(0, 10))
-        
-        # Comprehensive test button
-        self.comp_test_button = ttk.Button(first_row, text="Test All Maps", command=self.run_comprehensive_tests)
-        self.comp_test_button.grid(row=0, column=6, padx=(0, 10))
-        
-        # Compare algorithms button
-        self.compare_button = ttk.Button(first_row, text="Compare All", command=self.compare_algorithms)
-        self.compare_button.grid(row=0, column=7, padx=(0, 10))
+        # Test button
+        self.test_button = ttk.Button(first_row, text="Solve Puzzle", command=self.test_map)
+        self.test_button.grid(row=0, column=6, padx=(0, 10))
         
         # Clear results button
-        ttk.Button(first_row, text="Clear", command=self.clear_results).grid(row=0, column=8, padx=(0, 10))
+        ttk.Button(first_row, text="Clear", command=self.clear_results).grid(row=0, column=7, padx=(0, 10))
         
         # Second row of controls - Interactive Solution Controls
         second_row = ttk.Frame(control_frame)
@@ -153,7 +158,7 @@ class MultiAlgorithmTestGUI:
         self.prev_button = ttk.Button(second_row, text="⏪ Previous", command=self.previous_step, state=tk.DISABLED)
         self.prev_button.grid(row=0, column=2, padx=(0, 5))
         
-        self.play_button = ttk.Button(second_row, text="▶ Auto Play", command=self.auto_play, state=tk.DISABLED)
+        self.play_button = ttk.Button(second_row, text="▶ Play/Pause", command=self.auto_play, state=tk.DISABLED)
         self.play_button.grid(row=0, column=3, padx=(0, 5))
         
         self.next_button = ttk.Button(second_row, text="⏩ Next", command=self.next_step, state=tk.DISABLED)
@@ -166,32 +171,45 @@ class MultiAlgorithmTestGUI:
         self.step_label = ttk.Label(second_row, text="Step: 0/0", font=('Arial', 10))
         self.step_label.grid(row=0, column=6, padx=(20, 0))
         
-        # Progress bar
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(control_frame, variable=self.progress_var, mode='indeterminate')
-        self.progress_bar.grid(row=3, column=0, columnspan=6, sticky="ew", pady=(10, 0))
-        
         # Left Panel - Game Board
         board_frame = ttk.LabelFrame(main_frame, text="Rush Hour Board", padding="10")
         board_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
         
-        # Game grid        
-        global CELL_SIZE
-        CELL_SIZE = 80  # tile size in pixels
-
-        self.canvas = tk.Canvas(board_frame, width=6 * CELL_SIZE, height=6 * CELL_SIZE, bg='white')
-        self.canvas.grid(row=0, column=0, columnspan=7)
-
-        # Draw static grid
-        for i in range(7):  # vertical lines
-            self.canvas.create_line(i * CELL_SIZE, 0, i * CELL_SIZE, 6 * CELL_SIZE, fill='gray')
-        for j in range(7):  # horizontal lines
-            self.canvas.create_line(0, j * CELL_SIZE, 6 * CELL_SIZE, j * CELL_SIZE, fill='gray')
-
+        # Game grid
+        self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE, bg='#3e3e3e')
+        self.canvas.grid(row=0, column=0)
+            
+        # Top
+        self.canvas.create_line(self.CELL_SIZE, 0, 7 * self.CELL_SIZE, 0, fill='white', width=6)
+        self.canvas.create_line(self.CELL_SIZE + 6, 7, 7 * self.CELL_SIZE - 6, 7, fill='white', width=2)
+        
+        # Bottom
+        self.canvas.create_line(self.CELL_SIZE, 8 * self.CELL_SIZE, 7 * self.CELL_SIZE, 8 * self.CELL_SIZE, fill='white', width=6)
+        self.canvas.create_line(self.CELL_SIZE + 6, 8 * self.CELL_SIZE - 7, 7 * self.CELL_SIZE - 6, 8 * self.CELL_SIZE - 7, fill='white', width=2)
+        
+        # Left
+        self.canvas.create_line(self.CELL_SIZE, 0, self.CELL_SIZE, 3 * self.CELL_SIZE, fill='white', width=6)
+        self.canvas.create_line(self.CELL_SIZE + 7, 6, self.CELL_SIZE + 7, 3 * self.CELL_SIZE, fill='white', width=2)
+        
+        self.canvas.create_line(self.CELL_SIZE, 4 * self.CELL_SIZE, self.CELL_SIZE, 9 * self.CELL_SIZE, fill='white', width=6)
+        self.canvas.create_line(self.CELL_SIZE + 7, 4 * self.CELL_SIZE, self.CELL_SIZE + 7, 8 * self.CELL_SIZE - 6, fill='white', width=2)
+        
+        # Right
+        self.canvas.create_line(7 * self.CELL_SIZE, 0, 7 * self.CELL_SIZE, 3 * self.CELL_SIZE, fill='white', width=6)
+        self.canvas.create_line(7 * self.CELL_SIZE - 7, 6, 7 * self.CELL_SIZE - 7, 3 * self.CELL_SIZE, fill='white', width=2)
+        
+        self.canvas.create_line(7 * self.CELL_SIZE, 4 * self.CELL_SIZE, 7 * self.CELL_SIZE, 9 * self.CELL_SIZE, fill='white', width=6)
+        self.canvas.create_line(7 * self.CELL_SIZE - 7, 4 * self.CELL_SIZE - 6, 7 * self.CELL_SIZE - 7, 8 * self.CELL_SIZE - 6, fill='white', width=2)
+        
+        # Enter indicator
+        enter_x = 0 * self.CELL_SIZE + self.CELL_SIZE // 2
+        enter_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
+        self.canvas.create_text(enter_x, enter_y, text="←", font=('Arial', 24, 'bold'), fill='white', tags="static")
         
         # Exit indicator
-        exit_label = tk.Label(board_frame, text="EXIT →", font=('Arial', 10, 'bold'), fg='red')
-        exit_label.grid(row=2, column=6, padx=5)
+        exit_x = 7 * self.CELL_SIZE + self.CELL_SIZE // 2
+        exit_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
+        self.canvas.create_text(exit_x, exit_y, text="→", font=('Arial', 24, 'bold'), fill='white', tags="static")
         
         # Board info
         self.board_info_frame = ttk.Frame(board_frame)
@@ -212,61 +230,71 @@ class MultiAlgorithmTestGUI:
         results_frame.columnconfigure(0, weight=1)
         results_frame.rowconfigure(0, weight=1)
         
-        # Summary frame
-        summary_frame = ttk.LabelFrame(results_frame, text="Summary", padding="5")
-        summary_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
-        
-        self.summary_label = ttk.Label(summary_frame, text="No tests run yet", font=('Arial', 9))
-        self.summary_label.grid(row=0, column=0, sticky="w")
-    
+    def increase_map(self):
+        current = self.map_var.get()
+        if not current.isdigit():
+            self.map_var.set("1")
+        else:
+            num = int(current)
+            if num < self.NUM_OF_MAPS:
+                self.map_var.set(str(num + 1))
+        self.load_map()
+
+    def decrease_map(self):
+        current = self.map_var.get()
+        if not current.isdigit():
+            self.map_var.set(str(self.NUM_OF_MAPS))
+        else:
+            num = int(current)
+            if num > 1:
+                self.map_var.set(str(num - 1))
+        self.load_map()
+       
     def update_board_display(self, state):
         """Update the visual display of the board"""
         
         # Clear previous vehicles
         self.canvas.delete("vehicle")
         
-        # Draw vehicles
-        
         if not state:
             return
-
+        
+        # Draw vehicles
         for vehicle in state.vehicles:
             color = self.vehicle_colors.get(vehicle.id, '#AAAAAA')
             positions = vehicle.get_occupied_possitions()
             if not positions:
                 continue
 
-            x0 = positions[0][1] * CELL_SIZE
-            y0 = positions[0][0] * CELL_SIZE
-
-            if vehicle.orientation == 'H':
-                x1 = x0 + vehicle.length * CELL_SIZE
-                y1 = y0 + CELL_SIZE
-            else:
-                x1 = x0 + CELL_SIZE
-                y1 = y0 + vehicle.length * CELL_SIZE
+            x0 = (positions[0][1] + 1) * self.CELL_SIZE
+            y0 = (positions[0][0] + 1) * self.CELL_SIZE
 
             img = self.get_resized_car_image(vehicle)
             if img:
                 self.canvas.create_image(x0, y0, anchor="nw", image=img, tags="vehicle")
                 self.image_refs.append(img) # Prevent garbage collection
-
             else:
                 # fallback to rectangle if image missing
+                if vehicle.orientation == 'H':
+                    x1 = x0 + vehicle.length * self.CELL_SIZE
+                    y1 = y0 + self.CELL_SIZE
+                else:
+                    x1 = x0 + self.CELL_SIZE
+                    y1 = y0 + vehicle.length * self.CELL_SIZE
+                
                 self.canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline='black', tags="vehicle")
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
 
     def get_resized_car_image(self, vehicle):
-        path = os.path.join("gui", f"images\{vehicle.id}.png")
+        path = os.path.join("gui", f"images\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
-            width = CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else CELL_SIZE
-            height = CELL_SIZE * vehicle.length if vehicle.orientation == 'V' else CELL_SIZE
+            width = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else self.CELL_SIZE
+            height = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'V' else self.CELL_SIZE
             image = image.resize((width, height))
             return ImageTk.PhotoImage(image)
         except:
             return None
-
     
     def log_result(self, message):
         """Add a message to the results text area"""
@@ -278,11 +306,10 @@ class MultiAlgorithmTestGUI:
         """Clear the results text area"""
         self.results_text.delete(1.0, tk.END)
         self.test_results = []
-        self.summary_label.config(text="No tests run yet")
         self.status_label.config(text="Select a map to test")
         self.update_board_display(None)
     
-    def test_single_map(self):
+    def test_map(self):
         """Test a single map"""
         if self.is_running_test:
             return
@@ -290,15 +317,14 @@ class MultiAlgorithmTestGUI:
         map_id = int(self.map_var.get())
         self.is_running_test = True
         self.test_button.config(state=tk.DISABLED)
-        self.comp_test_button.config(state=tk.DISABLED)
         self.progress_bar.start()
         
         # Run test in separate thread
-        thread = threading.Thread(target=self._test_single_map_thread, args=(map_id,))
+        thread = threading.Thread(target=self._test_map_thread, args=(map_id,))
         thread.daemon = True
         thread.start()
     
-    def _test_single_map_thread(self, map_id):
+    def _test_map_thread(self, map_id):
         """Thread function for testing a single map"""
         try:
             algorithm_name = self.algorithm_var.get()
@@ -340,51 +366,17 @@ class MultiAlgorithmTestGUI:
             
             # Run solver
             self.log_result(f"🚀 Running {algorithm_info['name']} solver...")
-            start_time = time.time()
             
+            start_time = time.time()
             result = algorithm_info['func'](initial_state)
             end_time = time.time()
+            
             solve_time = end_time - start_time
             
             if result and result[0] is not None:
-                # Initialize variables
-                cost = 0
-                steps = 0
-                path = []
-                nodes_expanded = None
                 
-                # Handle different return formats
-                if algorithm_name == 'UCS':
-                    cost, nodes_expanded, path = result
-                    steps = len(path)
-                elif algorithm_name == 'DFS':
-                    # DFS returns just the path or None
-                    if isinstance(result, list):
-                        path = result
-                        steps = len(path) if path else 0
-                        cost = steps
-                        nodes_expanded = None
-                    else:
-                        # No solution
-                        path = []
-                        steps = 0
-                        cost = 0
-                        nodes_expanded = None
-                elif algorithm_name == 'BFS':
-                    # BFS typically returns (path, nodes_expanded, time)
-                    path, nodes_expanded, _ = result
-                    steps = len(path) if path else 0
-                    cost = steps  # Use steps as cost for other algorithms
-                else:
-                    # Generic case for other algorithms
-                    if isinstance(result, (list, tuple)) and len(result) >= 3:
-                        path, nodes_expanded, _ = result
-                        steps = len(path) if path else 0
-                        cost = steps
-                    elif isinstance(result, list):
-                        path = result
-                        steps = len(path) if path else 0
-                        cost = steps
+                cost, nodes_expanded, path = result
+                steps = len(path)
                 
                 # Store solution for interactive playback
                 self.solution_path = path
@@ -401,8 +393,6 @@ class MultiAlgorithmTestGUI:
                 # Create final state by applying all moves
                 final_state = self._apply_solution_to_state(initial_state, path)
                 
-                # Update board to show final state
-                self.root.after(0, lambda: self.update_board_display(final_state))
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: SOLVED with {algorithm_name} (Cost: {cost})"))
                 
                 # Enable interactive controls
@@ -451,312 +441,11 @@ class MultiAlgorithmTestGUI:
             # Re-enable buttons
             self.root.after(0, self._test_complete)
     
-    def run_comprehensive_tests(self):
-        """Run tests on multiple maps"""
-        if self.is_running_test:
-            return
-        
-        self.is_running_test = True
-        self.test_button.config(state=tk.DISABLED)
-        self.comp_test_button.config(state=tk.DISABLED)
-        self.progress_bar.start()
-        
-        # Run tests in separate thread
-        thread = threading.Thread(target=self._comprehensive_tests_thread)
-        thread.daemon = True
-        thread.start()
-    
-    def _comprehensive_tests_thread(self):
-        """Thread function for comprehensive testing"""
-        try:
-            algorithm_name = self.algorithm_var.get()
-            algorithm_info = self.algorithms.get(algorithm_name)
-            
-            if not algorithm_info:
-                self.log_result(f"❌ Algorithm '{algorithm_name}' not available")
-                return
-            
-            self.log_result(f"🚀 Starting Comprehensive {algorithm_info['name']} Tests")
-            self.log_result(f"{'='*80}")
-            
-            test_maps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # Test maps 1-10
-            successful_tests = 0
-            total_cost = 0
-            total_steps = 0
-            total_time = 0
-            
-            for map_id in test_maps:
-                # Check if map file exists
-                vehicles = import_map(map_id)
-                if not vehicles:
-                    self.log_result(f"Map {map_id}: ⚠️  File not found")
-                    continue
-                
-                self.log_result(f"\nTesting Map {map_id}...")
-                self.root.after(0, lambda mid=map_id: self.status_label.config(text=f"Testing Map {mid}..."))
-                
-                try:
-                    # Get selected algorithm
-                    algorithm_name = self.algorithm_var.get()
-                    algorithm_info = self.algorithms.get(algorithm_name)
-                    
-                    if not algorithm_info:
-                        self.log_result(f"Map {map_id}: ❌ Algorithm '{algorithm_name}' not available")
-                        continue
-                    
-                    # Create state and solve
-                    initial_state = State(vehicles)
-                    self.root.after(0, lambda: self.update_board_display(initial_state))
-                    
-                    start_time = time.time()
-                    result = algorithm_info['func'](initial_state)
-                    end_time = time.time()
-                    solve_time = end_time - start_time
-                    total_time += solve_time
-                    
-                    if result is not None:
-                        # Handle different return formats
-                        if algorithm_name == 'UCS':
-                            cost, final_state, path = result
-                            steps = len(path)
-                        elif algorithm_name == 'DFS':
-                            # DFS returns just the path or None
-                            if isinstance(result, list):
-                                path = result
-                                steps = len(path) if path else 0
-                                cost = steps
-                            else:
-                                # No solution
-                                self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
-                                self.test_results.append({
-                                    'map_id': map_id,
-                                    'algorithm': algorithm_name,
-                                    'success': False,
-                                    'time': solve_time
-                                })
-                                continue
-                        else:
-                            # BFS, A* typically return (path, nodes_expanded, time)
-                            if result[0] is not None:
-                                path, nodes_expanded, _ = result
-                                steps = len(path) if path else 0
-                                cost = steps  # Use steps as cost for other algorithms
-                            else:
-                                # No solution
-                                self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
-                                self.test_results.append({
-                                    'map_id': map_id,
-                                    'algorithm': algorithm_name,
-                                    'success': False,
-                                    'time': solve_time
-                                })
-                                continue
-                        
-                        successful_tests += 1
-                        total_cost += cost
-                        total_steps += steps
-                        
-                        self.log_result(f"Map {map_id}: ✅ SOLVED (Cost: {cost}, Steps: {steps}, Time: {solve_time:.3f}s)")
-                        
-                        self.test_results.append({
-                            'map_id': map_id,
-                            'algorithm': algorithm_name,
-                            'success': True,
-                            'cost': cost,
-                            'steps': steps,
-                            'time': solve_time
-                        })
-                    else:
-                        self.log_result(f"Map {map_id}: ❌ NO SOLUTION (Time: {solve_time:.3f}s)")
-                        self.test_results.append({
-                            'map_id': map_id,
-                            'algorithm': algorithm_name,
-                            'success': False,
-                            'time': solve_time
-                        })
-                
-                except Exception as e:
-                    self.log_result(f"Map {map_id}: 💥 ERROR - {str(e)}")
-            
-            # Summary
-            self.log_result(f"\n{'='*80}")
-            self.log_result(f"🏁 TEST SUMMARY")
-            self.log_result(f"{'='*80}")
-            self.log_result(f"Maps tested: {len([r for r in self.test_results if r.get('map_id') in test_maps])}")
-            self.log_result(f"Successful solutions: {successful_tests}")
-            self.log_result(f"Total time: {total_time:.3f} seconds")
-            
-            if successful_tests > 0:
-                avg_cost = total_cost / successful_tests
-                avg_steps = total_steps / successful_tests
-                avg_time = total_time / len(test_maps)
-                self.log_result(f"Average cost: {avg_cost:.2f}")
-                self.log_result(f"Average steps: {avg_steps:.2f}")
-                self.log_result(f"Average time per map: {avg_time:.3f}s")
-                
-                summary_text = f"Tested {len(test_maps)} maps, {successful_tests} solved successfully"
-                self.root.after(0, lambda: self.summary_label.config(text=summary_text))
-            
-        except Exception as e:
-            self.log_result(f"💥 Comprehensive test error: {str(e)}")
-        
-        finally:
-            self.root.after(0, self._test_complete)
-    
     def _test_complete(self):
         """Called when testing is complete"""
         self.is_running_test = False
         self.test_button.config(state=tk.NORMAL)
         self.comp_test_button.config(state=tk.NORMAL)
-        self.progress_bar.stop()
-    
-    def compare_algorithms(self):
-        """Compare all algorithms on selected map or multiple maps"""
-        if self.is_running_test:
-            return
-        
-        map_id = int(self.map_var.get())
-        self.is_running_test = True
-        self.test_button.config(state=tk.DISABLED)
-        self.comp_test_button.config(state=tk.DISABLED)
-        self.compare_button.config(state=tk.DISABLED)
-        self.progress_bar.start()
-        
-        # Run comparison in separate thread
-        thread = threading.Thread(target=self._compare_algorithms_thread, args=(map_id,))
-        thread.daemon = True
-        thread.start()
-    
-    def _compare_algorithms_thread(self, map_id):
-        """Thread function for algorithm comparison"""
-        try:
-            self.log_result(f"{'='*80}")
-            self.log_result(f"🔬 ALGORITHM COMPARISON - Map {map_id}")
-            self.log_result(f"{'='*80}")
-            
-            # Load vehicles
-            vehicles = import_map(map_id)
-            if not vehicles:
-                self.log_result(f"❌ Failed to load map{map_id}.txt")
-                return
-            
-            initial_state = State(vehicles)
-            self.root.after(0, lambda: self.update_board_display(initial_state))
-            
-            results = {}
-            
-            # Test each algorithm
-            for algo_name, algo_info in self.algorithms.items():
-                self.log_result(f"\nTesting {algo_info['name']}...")
-                self.root.after(0, lambda alg=algo_name: self.status_label.config(text=f"Testing {alg} on Map {map_id}..."))
-                
-                try:
-                    # Initialize variables
-                    cost = 0
-                    steps = 0
-                    path = []
-                    nodes_expanded = None
-                    
-                    start_time = time.time()
-                    result = algo_info['func'](initial_state)
-                    end_time = time.time()
-                    solve_time = end_time - start_time
-                    
-                    if result is not None:
-                        # Handle different return formats
-                        if algo_name == 'UCS':
-                            cost, nodes_expanded, path = result
-                            steps = len(path)
-                        elif algo_name == 'DFS':
-                            # DFS returns just the path or None
-                            if isinstance(result, list):
-                                path = result
-                                steps = len(path) if path else 0
-                                cost = steps
-                                nodes_expanded = None
-                            else:
-                                # No solution
-                                results[algo_name] = {
-                                    'success': False,
-                                    'time': solve_time
-                                }
-                                self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
-                                continue
-                        elif algo_name == 'BFS':
-                            # BFS, A* typically return (path, nodes_expanded, time)
-                            if result[0] is not None:
-                                path, nodes_expanded, _ = result
-                                steps = len(path) if path else 0
-                                cost = steps
-                            else:
-                                results[algo_name] = {
-                                    'success': False,
-                                    'time': solve_time
-                                }
-                                self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
-                                continue
-                        
-                        results[algo_name] = {
-                            'success': True,
-                            'cost': cost,
-                            'steps': steps,
-                            'time': solve_time,
-                            'nodes_expanded': nodes_expanded
-                        }
-                        
-                        nodes_str = f", Nodes: {nodes_expanded}" if nodes_expanded is not None else ""
-                        self.log_result(f"   ✅ {algo_name}: Cost={cost}, Steps={steps}, Time={solve_time:.3f}s{nodes_str}")
-                    else:
-                        results[algo_name] = {
-                            'success': False,
-                            'time': solve_time
-                        }
-                        self.log_result(f"   ❌ {algo_name}: No solution, Time={solve_time:.3f}s")
-                        
-                except Exception as e:
-                    results[algo_name] = {
-                        'success': False,
-                        'error': str(e)
-                    }
-                    self.log_result(f"   💥 {algo_name}: Error - {str(e)}")
-            
-            # Summary comparison
-            self.log_result(f"\n{'='*60}")
-            self.log_result(f"📊 COMPARISON SUMMARY")
-            self.log_result(f"{'='*60}")
-            
-            successful_algos = [name for name, result in results.items() if result.get('success', False)]
-            
-            if successful_algos:
-                self.log_result(f"Successful algorithms: {', '.join(successful_algos)}")
-                
-                # Find best by different metrics
-                best_time = min(successful_algos, key=lambda x: results[x]['time'])
-                best_cost = min(successful_algos, key=lambda x: results[x]['cost'])
-                
-                self.log_result(f"Fastest: {best_time} ({results[best_time]['time']:.3f}s)")
-                self.log_result(f"Lowest cost: {best_cost} (cost={results[best_cost]['cost']})")
-                
-                # Show nodes expanded comparison if available
-                algos_with_nodes = [name for name in successful_algos if results[name].get('nodes_expanded') is not None]
-                if algos_with_nodes:
-                    best_nodes = min(algos_with_nodes, key=lambda x: results[x]['nodes_expanded'])
-                    self.log_result(f"Fewest nodes: {best_nodes} ({results[best_nodes]['nodes_expanded']} nodes)")
-            else:
-                self.log_result("No algorithms found a solution.")
-                
-        except Exception as e:
-            self.log_result(f"💥 Comparison error: {str(e)}")
-        
-        finally:
-            self.root.after(0, self._comparison_complete)
-    
-    def _comparison_complete(self):
-        """Called when comparison is complete"""
-        self.is_running_test = False
-        self.test_button.config(state=tk.NORMAL)
-        self.comp_test_button.config(state=tk.NORMAL)
-        self.compare_button.config(state=tk.NORMAL)
         self.progress_bar.stop()
     
     def load_map(self):
@@ -780,6 +469,12 @@ class MultiAlgorithmTestGUI:
             self.update_board_display(initial_state)
             self.status_label.config(text=f"Map {map_id} loaded")
             self.step_label.config(text="Step: 0/0")
+            self.reset_button.config(state=tk.DISABLED)
+            self.prev_button.config(state=tk.DISABLED)
+            
+            current = int(self.map_var.get())
+            self.decrease_map_button.config(state=tk.NORMAL if current > 1 else tk.DISABLED)
+            self.increase_map_button.config(state=tk.NORMAL if current < self.NUM_OF_MAPS else tk.DISABLED)
             
             self.log_result(f"Map {map_id} loaded with {len(vehicles)} vehicles")
             
