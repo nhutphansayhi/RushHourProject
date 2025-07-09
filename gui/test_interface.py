@@ -101,7 +101,7 @@ class MultiAlgorithmTestGUI:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
         
-        # # Configure grid weights
+        # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
@@ -178,38 +178,26 @@ class MultiAlgorithmTestGUI:
         # Game grid
         self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE, bg='#3e3e3e')
         self.canvas.grid(row=0, column=0)
-            
-        # Top
-        self.canvas.create_line(self.CELL_SIZE, 0, 7 * self.CELL_SIZE, 0, fill='white', width=6)
-        self.canvas.create_line(self.CELL_SIZE + 6, 7, 7 * self.CELL_SIZE - 6, 7, fill='white', width=2)
-        
-        # Bottom
-        self.canvas.create_line(self.CELL_SIZE, 8 * self.CELL_SIZE, 7 * self.CELL_SIZE, 8 * self.CELL_SIZE, fill='white', width=6)
-        self.canvas.create_line(self.CELL_SIZE + 6, 8 * self.CELL_SIZE - 7, 7 * self.CELL_SIZE - 6, 8 * self.CELL_SIZE - 7, fill='white', width=2)
         
         # Left
-        self.canvas.create_line(self.CELL_SIZE, 0, self.CELL_SIZE, 3 * self.CELL_SIZE, fill='white', width=6)
-        self.canvas.create_line(self.CELL_SIZE + 7, 6, self.CELL_SIZE + 7, 3 * self.CELL_SIZE, fill='white', width=2)
+        self.canvas.create_rectangle(0, 0, self.CELL_SIZE, self.CELL_SIZE * 8, fill='#737272', outline="")
         
-        self.canvas.create_line(self.CELL_SIZE, 4 * self.CELL_SIZE, self.CELL_SIZE, 9 * self.CELL_SIZE, fill='white', width=6)
-        self.canvas.create_line(self.CELL_SIZE + 7, 4 * self.CELL_SIZE, self.CELL_SIZE + 7, 8 * self.CELL_SIZE - 6, fill='white', width=2)
+        self.canvas.create_rectangle(0, self.CELL_SIZE * 3, self.CELL_SIZE, self.CELL_SIZE * 4, fill='#3e3e3e', outline="")
         
         # Right
-        self.canvas.create_line(7 * self.CELL_SIZE, 0, 7 * self.CELL_SIZE, 3 * self.CELL_SIZE, fill='white', width=6)
-        self.canvas.create_line(7 * self.CELL_SIZE - 7, 6, 7 * self.CELL_SIZE - 7, 3 * self.CELL_SIZE, fill='white', width=2)
+        self.canvas.create_rectangle(self.CELL_SIZE * 7, 0, self.CELL_SIZE * 8, self.CELL_SIZE * 8, fill='#737272', outline="")
         
-        self.canvas.create_line(7 * self.CELL_SIZE, 4 * self.CELL_SIZE, 7 * self.CELL_SIZE, 9 * self.CELL_SIZE, fill='white', width=6)
-        self.canvas.create_line(7 * self.CELL_SIZE - 7, 4 * self.CELL_SIZE - 6, 7 * self.CELL_SIZE - 7, 8 * self.CELL_SIZE - 6, fill='white', width=2)
+        self.canvas.create_rectangle(self.CELL_SIZE * 7, self.CELL_SIZE * 3, self.CELL_SIZE * 8, self.CELL_SIZE * 4, fill='#3e3e3e', outline="")
         
         # Enter indicator
         enter_x = 0 * self.CELL_SIZE + self.CELL_SIZE // 2
         enter_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
-        self.canvas.create_text(enter_x, enter_y, text="←", font=('Arial', 24, 'bold'), fill='white', tags="static")
+        self.canvas.create_text(enter_x, enter_y, text="→", font=('Arial', 12, 'bold'), fill='white', tags="static")
         
         # Exit indicator
         exit_x = 7 * self.CELL_SIZE + self.CELL_SIZE // 2
         exit_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
-        self.canvas.create_text(exit_x, exit_y, text="→", font=('Arial', 24, 'bold'), fill='white', tags="static")
+        self.canvas.create_text(exit_x, exit_y, text="→", font=('Arial', 12, 'bold'), fill='white', tags="static")
         
         # Board info
         self.board_info_frame = ttk.Frame(board_frame)
@@ -286,7 +274,7 @@ class MultiAlgorithmTestGUI:
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
 
     def get_resized_car_image(self, vehicle):
-        path = os.path.join("gui", f"images\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
+        path = os.path.join("gui", f"images\\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
             width = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else self.CELL_SIZE
@@ -317,7 +305,6 @@ class MultiAlgorithmTestGUI:
         map_id = int(self.map_var.get())
         self.is_running_test = True
         self.test_button.config(state=tk.DISABLED)
-        self.progress_bar.start()
         
         # Run test in separate thread
         thread = threading.Thread(target=self._test_map_thread, args=(map_id,))
@@ -446,7 +433,6 @@ class MultiAlgorithmTestGUI:
         self.is_running_test = False
         self.test_button.config(state=tk.NORMAL)
         self.comp_test_button.config(state=tk.NORMAL)
-        self.progress_bar.stop()
     
     def load_map(self):
         """Load a map without solving it"""
@@ -607,7 +593,7 @@ class MultiAlgorithmTestGUI:
 
 def main():
     root = tk.Tk()
-    app = MultiAlgorithmTestGUI(root)
+    MultiAlgorithmTestGUI(root)
     root.mainloop()
   
 if __name__ == "__main__":
