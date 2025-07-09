@@ -1,7 +1,6 @@
 import sys
 import os
 import queue
-import time
 
 # Add parent directory to path to access utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +8,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import Vehicle, State, import_map
 
 def bfs_solver(initial_state):
-    start_time = time.time()
     
     if initial_state.is_solved():
         return [], 0, 0
@@ -37,11 +35,10 @@ def bfs_solver(initial_state):
                 new_path = path + [(vehicle_id, direction)]
                 
                 if new_state.is_solved():
-                    end_time = time.time()
-                    return new_path, nodes_expanded, end_time - start_time
+                    return len(new_path), nodes_expanded, new_path
                 
                 q.put((new_state, new_path))
-    return None, nodes_expanded, time.time() - start_time
+    return None, 0, nodes_expanded
 
 # def main():
 #     """Test the BFS solver on multiple maps and show detailed statistics"""

@@ -1,12 +1,11 @@
-def dfs_solver(start_state, max_depth=1000):
+def dfs_solver(start_state, max_depth=100000):
     stack = [(start_state, [])]  # (current_state, path_so_far)
     visited = set()
-#    node_expandeds = 0
-#    start_time = time.time()
+    node_expanded = 0
 
     while stack:
         current_state, path = stack.pop()
-#        node_expandeds += 1
+        node_expanded += 1
         state_key = current_state.to_string()
 
         if state_key in visited:
@@ -14,7 +13,7 @@ def dfs_solver(start_state, max_depth=1000):
         visited.add(state_key)
 
         if current_state.is_solved():
-            return path#, node_expandeds, time.time() - start_time   # List of (vehicle_id, direction) moves
+            return len(path), node_expanded, path
 
         if len(path) >= max_depth:
             continue  # Prevent infinite loops
@@ -25,4 +24,4 @@ def dfs_solver(start_state, max_depth=1000):
             if new_state:
                 stack.append((new_state, path + [move]))
 
-    return None#, node_expandeds, time.time() - start_time  # No solution found
+    return None, 0, []

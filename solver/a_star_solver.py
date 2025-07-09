@@ -145,9 +145,9 @@ class PriorityQueue:
 def routeShouldEmptyOfVehicle(vehicle,vehicleCenter,state):# vehicleCenter: [1,2]
     route = []
     
-    if (vehicle.id == "X"):
+    if (vehicle.id == state.target_vehicle_id):
         for i in range(vehicle.col+2 ,6):
-            route.append([vehicle.row, i])  
+            route.append([vehicle.row, i])
     elif (vehicle.orientation == "H"):
         From = max(0,vehicleCenter[1]- vehicle.length) 
         To = min (5,vehicleCenter[1] + vehicle.length) + 1 # +1 for the threshold of for
@@ -162,132 +162,108 @@ def routeShouldEmptyOfVehicle(vehicle,vehicleCenter,state):# vehicleCenter: [1,2
 
 
 def heuristic(state):
-    
-    # tạo bảng đồ có tên xe từng đoạn
-    # grid = [["_"]*6 for _ in range(6)]
-    # for vehicle in state.vehicles:
-    #     if vehicle[3] == "H":
-    #         for i in range(vehicle[4]):
-    #             try:
-    #                 grid[vehicle[1]][vehicle[2] + i] = vehicle[0]
-    #             except:
-    #                 print("H:",vehicle[1],vehicle[2] + i)
-    #     if vehicle[3] == "V":
-    #         for i in range(vehicle[4]):
-    #             try:
-    #                 grid[vehicle[1] + i][vehicle[2]] = vehicle[0]
-    #             except:
-    #                 print("V:",vehicle[1] + i,vehicle[2])
-    
-    
-
-
     heu = 0
-    cores = Queue() # core = [[pairOfVehicle,position],...] / put get
-    # lấy center -> không cần 
-    # tính heuristic luôn
-    queue = Queue() # vehicle, position be run over 
-    queue.put([state.get_vehicle_by_id(state.target_vehicle_id),[]])  # vehicles and positions of it which got run over
-    NodeExpanded = [] #pair of name, name 1 is vehicle run over, name 2 is vehicle got run over, => NodeExpand = [[A,B],[C,D]]
-    while not queue.empty(): 
-        vehicle_vehicleCenter = queue.get()  
+    cores = []  # Thay Queue bằng list - nhanh hơn
+    queue = []  # Thay Queue bằng list
+    
+    queue.append([state.get_vehicle_by_id(state.target_vehicle_id), []])
+    
+    # Thay NodeExpanded list bằng set cho O(1) lookup
+    node_expanded = set()  # Set of tuples thay vì list of lists
+    
+    while queue:  # Thay queue.empty() bằng while queue
+        vehicle_vehicleCenter = queue.pop(0)  # FIFO
         vehicle = vehicle_vehicleCenter[0]
         position = vehicle_vehicleCenter[1]
         vehicleRunOver = vehicle.id
         
-        for pos in routeShouldEmptyOfVehicle(vehicle ,position ,state): 
+        for pos in routeShouldEmptyOfVehicle(vehicle, position, state):
             if state.board[pos[0]][pos[1]] != ".":
-                vehicleGotRunOver = state.board[pos[0]][pos[1]] 
-                flag = True
-                #kiem tra xem co trong NodeExpanded chưa
-                if vehicleRunOver == vehicleGotRunOver:
-                    flag = False
-                    continue 
-                for pairOfVehicle in NodeExpanded: # NodeExpanđe = [[A,B], [D,E], ...]
-                    if  (pairOfVehicle[0] == vehicleRunOver and pairOfVehicle[1] == vehicleGotRunOver ):
-                        flag = False 
-                        break
-                if flag: # đảm bảo các pairs khác nhau và đảm bảo không cán lên chính nó 
-                    NodeExpanded.append([vehicleRunOver,vehicleGotRunOver]) # NodeExpand là trong toàn giai đoạn 
-                    cores.put([[vehicleRunOver, vehicleGotRunOver],pos]) 
-                elif flag == False:
-                    continue 
-        
+                vehicleGotRunOver = state.board[pos[0]][pos[1]]
                 
-        while not cores.empty(): # cores =[ [[A,B],[1,2]] , [[D,C],[5,3]] ,...]
-            heu+=1
-            core = cores.get()
+                if vehicleRunOver == vehicleGotRunOver:
+                    continue
+                
+                # O(1) lookup thay vì O(n) loop
+                pair = (vehicleRunOver, vehicleGotRunOver)
+                if pair not in node_expanded:
+                    node_expanded.add(pair)
+                    cores.append([[vehicleRunOver, vehicleGotRunOver], pos])
+        
+        while cores:  # Thay cores.empty() bằng while cores
+            heu += 1
+            core = cores.pop(0)
+            
             for vehicle in state.vehicles:
-                if  core[0][1] == vehicle.id:
-                    queue.put([vehicle,core[1]])  
+                if core[0][1] == vehicle.id:
+                    queue.append([vehicle, core[1]])
+                    break  # Break ngay khi tìm thấy
+                    
     return heu
 
-
-
-
 # Thuật toán A*
-def aStart_solver(initial_state):
-    start_time = time.time()
+def aStar_solver(initial_state):
     queue = PriorityQueue()
-    # queue = []
+    
+    # B: Cache initial state string
     queue.put((initial_state, []), heuristic(initial_state))
-    # heapq.heappush(queue, (heuristic(initial_state), initial_state, []))  # (f_cost, state, path)
     visited = set()
     nodes_expanded = 0
     
     while not queue.is_empty():
-        state,path = queue.get()
-        # state, path = heapq.heappop(queue)  # Lấy phần tử có f_cost nhỏ nhất
-        # _, state, path = heapq.heappop(queue)  # Lấy phần tử có f_cost nhỏ nhất
-        # if str(state.vehicles) in visited:
-        #     continue
-        if state.to_string() in visited:
+        state, path = queue.get()
+        
+        # B: Cache state string - tính 1 lần duy nhất
+        state_key = state.to_string()
+        if state_key in visited:
             continue
 
-        visited.add(state.to_string())
+        visited.add(state_key)  # Sử dụng cached string
         nodes_expanded += 1
         
         if state.is_solved():
-            end_time = time.time()
-            return path, nodes_expanded, end_time - start_time
+            return len(path), nodes_expanded, path
         
         possible_moves = state.get_all_possible_moves()
-        for vehicle_id,direction in possible_moves:
+        for vehicle_id, direction in possible_moves:
             new_state = state.move_vehicle(vehicle_id, direction)
-            if new_state.to_string() not in visited:
+            
+            # B: Cache new state string - tính 1 lần duy nhất
+            new_state_key = new_state.to_string()
+            if new_state_key not in visited:
                 new_path = path + [(vehicle_id, direction)]
                 g_cost = len(new_path)
                 h_cost = heuristic(new_state)
                 f_cost = g_cost + h_cost
                 queue.put((new_state, new_path), f_cost)
-                # heapq.heappush(queue, (f_cost, new_state, new_path))    
-    return None, nodes_expanded, time.time() - start_time
+                
+    return None, nodes_expanded, []
 
 
-initial_vehicle = import_map(1)  # Nhập dữ liệu từ file map12.txt
-initial_state = State(initial_vehicle)
-# Chạy và hiển thị kết quả
-print("Step 0:")
-for line in initial_state.vehicles:
-    print(line.id, line.row, line.col, line.length, line.orientation, line.is_target)
+# initial_vehicle = import_map(1)  # Nhập dữ liệu từ file map12.txt
+# initial_state = State(initial_vehicle)
+# # Chạy và hiển thị kết quả
+# print("Step 0:")
+# for line in initial_state.vehicles:
+#     print(line.id, line.row, line.col, line.length, line.orientation, line.is_target)
 
-solution, nodes_expanded, search_time = aStart_solver(initial_state)
-if solution:
-    print(f"Solution found with {len(solution)} moves:")
-    current_state = initial_state
-    for i, move in enumerate(solution, 1):
-        vehicle_idx, direction = move
-        # vehicle_id = current_state.vehicles[vehicle_idx][0]
-        # Logic in hướng đã sửa
-        # if current_state.vehicles[vehicle_idx][3] == "H":
-        #     direction_str = "left" if direction == -1 else "right"
-        # else:
-        #     direction_str = "up" if direction == -1 else "down"
+# solution, nodes_expanded, search_time = aStar_solver(initial_state)
+# if solution:
+#     print(f"Solution found with {len(solution)} moves:")
+#     current_state = initial_state
+#     for i, move in enumerate(solution, 1):
+#         vehicle_idx, direction = move
+#         # vehicle_id = current_state.vehicles[vehicle_idx][0]
+#         # Logic in hướng đã sửa
+#         # if current_state.vehicles[vehicle_idx][3] == "H":
+#         #     direction_str = "left" if direction == -1 else "right"
+#         # else:
+#         #     direction_str = "up" if direction == -1 else "down"
         
-        print(f"Step {i}: Move vehicle {vehicle_idx} {direction}")
-        current_state = current_state.move_vehicle(vehicle_idx, direction)
-        current_state.display()
-    print(f"Nodes expanded: {nodes_expanded}")
-    print(f"Search time: {search_time:.4f} seconds")
-else:
-    print("No solution found")
+#         print(f"Step {i}: Move vehicle {vehicle_idx} {direction}")
+#         current_state = current_state.move_vehicle(vehicle_idx, direction)
+#         current_state.display()
+#     print(f"Nodes expanded: {nodes_expanded}")
+#     print(f"Search time: {search_time:.4f} seconds")
+# else:
+#     print("No solution found")

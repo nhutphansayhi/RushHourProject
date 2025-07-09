@@ -36,15 +36,13 @@ except ImportError:
     ucs = None
 
 try:
-    from solver.a_star_solver import a_star_solver
+    from solver.a_star_solver import aStar_solver
 except ImportError:
-    a_star_solver = None
-
-total_maps = 12
+    aStar_solver = None
 
 class MultiAlgorithmTestGUI:
     
-    CELL_SIZE = 50  # tile size in pixels
+    CELL_SIZE = 80  # tile size in pixels
     NUM_OF_MAPS = 12 # total testing maps
     
     def __init__(self, root):
@@ -70,9 +68,8 @@ class MultiAlgorithmTestGUI:
             self.algorithms['DFS'] = {'func': dfs_solver, 'name': 'Depth-First Search'}
         if ucs:
             self.algorithms['UCS'] = {'func': ucs, 'name': 'Uniform Cost Search'}
-        # A* is not implemented yet
-        # if a_star_solver:
-        #     self.algorithms['A*'] = {'func': a_star_solver, 'name': 'A* Search'}
+        if aStar_solver:
+            self.algorithms['A*'] = {'func': aStar_solver, 'name': 'A* Search'}
         
         if not self.algorithms:
             messagebox.showerror("Error", "No solver algorithms found!")
