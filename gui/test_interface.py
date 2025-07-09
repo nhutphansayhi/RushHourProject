@@ -115,9 +115,9 @@ class MultiAlgorithmTestGUI:
         # Algorithm selection
         ttk.Label(first_row, text="Algorithm:").grid(row=0, column=0, padx=(0, 5))
         self.algorithm_var = tk.StringVar(value=list(self.algorithms.keys())[0] if self.algorithms else "")
-        algorithm_combo = ttk.Combobox(first_row, textvariable=self.algorithm_var, 
+        self.algorithm_combo = ttk.Combobox(first_row, textvariable=self.algorithm_var, 
                                      values=list(self.algorithms.keys()), width=10, state="readonly")
-        algorithm_combo.grid(row=0, column=1, padx=(0, 10))
+        self.algorithm_combo.grid(row=0, column=1, padx=(0, 10))
         
         # Map selection
         ttk.Label(first_row, text="Map:").grid(row=0, column=2, padx=(0, 5))
@@ -128,9 +128,9 @@ class MultiAlgorithmTestGUI:
 
         # Map combobox
         self.map_var = tk.StringVar(value="")
-        map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, self.NUM_OF_MAPS + 1)], width=5, state="readonly")
-        map_combo.grid(row=0, column=4, padx=(0, 2))
-        map_combo.bind("<<ComboboxSelected>>", lambda e: self.load_map())
+        self.map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, self.NUM_OF_MAPS + 1)], width=5, state="readonly")
+        self.map_combo.grid(row=0, column=4, padx=(0, 2))
+        self.map_combo.bind("<<ComboboxSelected>>", lambda e: self.load_map())
 
         # Increase button
         self.increase_map_button = ttk.Button(first_row, text="→", width=2, command=self.increase_map)
@@ -141,7 +141,8 @@ class MultiAlgorithmTestGUI:
         self.test_button.grid(row=0, column=6, padx=(0, 10))
         
         # Clear results button
-        ttk.Button(first_row, text="Clear", command=self.clear_results).grid(row=0, column=7, padx=(0, 10))
+        self.clear_button = ttk.Button(first_row, text="Clear", command=self.clear_results)
+        self.clear_button.grid(row=0, column=7, padx=(0, 10))
         
         # Second row of controls - Interactive Solution Controls
         second_row = ttk.Frame(control_frame)
@@ -509,12 +510,37 @@ class MultiAlgorithmTestGUI:
             self.reset_to_start()
         
         self.is_auto_playing = True
+        
+        self.algorithm_combo.config(state='disabled')
+        self.increase_map_button.config(state=tk.DISABLED)
+        self.map_combo.config(state='disabled')
+        self.decrease_map_button.config(state=tk.DISABLED)
+        self.test_button.config(state=tk.DISABLED)
+        self.clear_button.config(state=tk.DISABLED)
+        self.reset_button.config(state=tk.DISABLED)
+        self.prev_button.config(state=tk.DISABLED)
+        self.next_button.config(state=tk.DISABLED)
+        self.end_button.config(state=tk.DISABLED)
+        
         self.play_button.config(text="⏸ Pause", command=self.pause_auto_play)
+        
         self._auto_play_step()
     
     def pause_auto_play(self):
         """Pause auto-play"""
         self.is_auto_playing = False
+        
+        self.algorithm_combo.config(state='readonly')
+        self.increase_map_button.config(state=tk.NORMAL)
+        self.map_combo.config(state='normal')
+        self.decrease_map_button.config(state=tk.NORMAL)
+        self.test_button.config(state=tk.NORMAL)
+        self.clear_button.config(state=tk.NORMAL)
+        self.reset_button.config(state=tk.NORMAL)
+        self.prev_button.config(state=tk.NORMAL)
+        self.next_button.config(state=tk.NORMAL)
+        self.end_button.config(state=tk.NORMAL)
+        
         self.play_button.config(text="▶ Auto Play", command=self.auto_play)
     
     def _auto_play_step(self):
@@ -582,11 +608,12 @@ class MultiAlgorithmTestGUI:
         at_end = self.current_step >= len(self.solution_path)
         
         # Enable/disable buttons based on state
-        self.reset_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
-        self.prev_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
-        self.play_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
-        self.next_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
-        self.end_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
+        if not self.is_auto_playing:
+            self.reset_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
+            self.prev_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
+            self.play_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
+            self.next_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
+            self.end_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
 
 def main():
     root = tk.Tk()
