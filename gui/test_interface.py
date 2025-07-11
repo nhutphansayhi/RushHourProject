@@ -101,33 +101,33 @@ class MultiAlgorithmTestGUI:
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        main_frame.columnconfigure(1, weight=1) # thay đổi khi window resize
+        main_frame.rowconfigure(2, weight=1) # sao lại là 2?
         
         # Control Panel
         control_frame = ttk.LabelFrame(main_frame, text="Test Controls", padding="10")
-        control_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        control_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10)) # 0px padding trên và 10px dưới
         
         # First row of controls
         first_row = ttk.Frame(control_frame)
-        first_row.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+        first_row.grid(row=0, column=0, sticky="ew", pady=(0, 5)) # ???
         
         # Algorithm selection
         ttk.Label(first_row, text="Algorithm:").grid(row=0, column=0, padx=(0, 5))
-        self.algorithm_var = tk.StringVar(value=list(self.algorithms.keys())[0] if self.algorithms else "")
+        self.algorithm_var = tk.StringVar(value=list(self.algorithms.keys())[0] if self.algorithms else "") # lưu trữ tên thuật toán đã chọn
         self.algorithm_combo = ttk.Combobox(first_row, textvariable=self.algorithm_var, 
                                      values=list(self.algorithms.keys()), width=10, state="readonly")
         self.algorithm_combo.grid(row=0, column=1, padx=(0, 10))
         
         # Map selection
         ttk.Label(first_row, text="Map:").grid(row=0, column=2, padx=(0, 5))
-
+        
         # Decrease button
         self.decrease_map_button = ttk.Button(first_row, text="←", width=2, command=self.decrease_map)
         self.decrease_map_button.grid(row=0, column=3, padx=(0, 2))
 
         # Map combobox
-        self.map_var = tk.StringVar(value="")
+        self.map_var = tk.StringVar(value="1")
         self.map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, self.NUM_OF_MAPS + 1)], width=5, state="readonly")
         self.map_combo.grid(row=0, column=4, padx=(0, 2))
         self.map_combo.bind("<<ComboboxSelected>>", lambda e: self.load_map())
@@ -174,7 +174,7 @@ class MultiAlgorithmTestGUI:
         board_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
         
         # Game grid
-        self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE, bg='#3e3e3e')
+        self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE, bg="#3e3e3e")
         self.canvas.grid(row=0, column=0)
         
         # Left
@@ -240,7 +240,7 @@ class MultiAlgorithmTestGUI:
         """Update the visual display of the board"""
         
         # Clear previous vehicles
-        self.canvas.delete("vehicle")
+        self.canvas.delete("vehicle") # có nhãn để dễ delete
         
         if not state:
             return
@@ -258,7 +258,7 @@ class MultiAlgorithmTestGUI:
             img = self.get_resized_car_image(vehicle)
             if img:
                 self.canvas.create_image(x0, y0, anchor="nw", image=img, tags="vehicle")
-                self.image_refs.append(img) # Prevent garbage collection
+                self.image_refs.append(img) # Prevent garbage collection 
             else:
                 # fallback to rectangle if image missing
                 if vehicle.orientation == 'H':
@@ -271,7 +271,7 @@ class MultiAlgorithmTestGUI:
                 self.canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline='black', tags="vehicle")
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
 
-    def get_resized_car_image(self, vehicle):
+    def get_resized_car_image(self, vehicle): # lấy ảnh xe và cả resize
         path = os.path.join("gui", f"images\\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
@@ -280,6 +280,7 @@ class MultiAlgorithmTestGUI:
             image = image.resize((width, height))
             return ImageTk.PhotoImage(image)
         except:
+            print("Error loading image:", path)
             return None
     
     def log_result(self, message):
@@ -616,7 +617,7 @@ class MultiAlgorithmTestGUI:
             self.end_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
 
 def main():
-    root = tk.Tk()
+    root = tk.Tk() # môt TK object đại diện cho cửa sổ chính của ứng dụng
     MultiAlgorithmTestGUI(root)
     root.mainloop()
   
