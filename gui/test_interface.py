@@ -25,7 +25,7 @@ from solver.ucs_solver import ucs
 
 
 try:
-    from solver.a_star_solver import aStar_solver
+    from solver.aStar_solver import aStar_solver
 except ImportError:
     aStar_solver = None
 

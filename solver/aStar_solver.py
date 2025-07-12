@@ -160,6 +160,9 @@ def routeShouldEmptyOfVehicle(vehicle,vehicleCenter,state):# vehicleCenter: [1,2
             route.append([i,vehicle.col])
     return route
 
+ 
+    
+    
 
 def heuristic(state):
     heu = 0
@@ -172,30 +175,47 @@ def heuristic(state):
     node_expanded = set()  # Set of tuples thay vì list of lists
     
     while queue:  # Thay queue.empty() bằng while queue
+        
         vehicle_vehicleCenter = queue.pop(0)  # FIFO
         vehicle = vehicle_vehicleCenter[0]
         position = vehicle_vehicleCenter[1]
         vehicleRunOver = vehicle.id
         
-        for pos in routeShouldEmptyOfVehicle(vehicle, position, state):
+        for pos in routeShouldEmptyOfVehicle(vehicle, position, state): 
+            flag1 = False # 
+            flag2 = False # Không nên đưa xe vào queue  
             if state.board[pos[0]][pos[1]] != ".":
                 vehicleGotRunOver = state.board[pos[0]][pos[1]]
                 
+                
+                    
                 if vehicleRunOver == vehicleGotRunOver:
                     continue
                 
+                if vehicle.orientation == "H" and vehicle.is_target == 0:
+                    if pos[1] < position[1] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag1 = True
+                    elif pos[1] > position[1] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag2 = True
+                elif vehicle.orientation == "V" and vehicle.is_target == 0:
+                    if pos[0] < position[0] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag1 = True
+                    elif pos[0] > position[0] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag2 = True
+                
                 # O(1) lookup thay vì O(n) loop
                 pair = (vehicleRunOver, vehicleGotRunOver)
-                if pair not in node_expanded:
+                if pair not in node_expanded and (flag1 or flag2):
                     node_expanded.add(pair)
                     cores.append([[vehicleRunOver, vehicleGotRunOver], pos])
-        
+
+                
         while cores:  # Thay cores.empty() bằng while cores
             heu += 1
             core = cores.pop(0)
             
             for vehicle in state.vehicles:
-                if core[0][1] == vehicle.id:
+                if core[0][1] == vehicle.id and (flag1 or flag2):
                     queue.append([vehicle, core[1]])
                     break  # Break ngay khi tìm thấy
                     
