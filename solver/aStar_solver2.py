@@ -114,41 +114,112 @@ class PriorityQueue:
     def size(self):
         return len(self._queue)
 
+# Hàm heuristic
+# def heuristic(state):
+#     grid = [["_"]*6 for _ in range(6)]
+#     for vehicle in state.vehicles:
+#         if vehicle[3] == "H":
+#             for i in range(vehicle[4]):
+#                 grid[vehicle[1]][vehicle[2] + i] = vehicle[0]
+#         elif vehicle[3] == "V":
+#             for i in range(vehicle[4]):
+#                 grid[vehicle[1] + i][vehicle[2]] = vehicle[0]
+    
+#     # Đếm số ô bị chặn trên đường của X
+#     heu = 0
+#     x_pos = None
+#     for vehicle in state.vehicles:
+#         if vehicle[0] == "X":
+#             x_pos = vehicle[2]  # Vị trí cột của X
+#             break
+    
+#     # Kiểm tra từ sau X đến cột 5 trên hàng 2
+#     for col in range(x_pos + 2, 6):
+#         if grid[2][col] != "_":
+#             heu += 1
+    
+#     return heu
+
+#[id, row, col, H/V, length]
+#[id, row, col, length, H/V, (0/1)]
+def routeShouldEmptyOfVehicle(vehicle,vehicleCenter,state):# vehicleCenter: [1,2]
+    route = []
+    
+    if (vehicle.id == state.target_vehicle_id):
+        for i in range(vehicle.col+2 ,6):
+            route.append([vehicle.row, i])
+    elif (vehicle.orientation == "H"):
+        From = max(0,vehicleCenter[1]- vehicle.length) 
+        To = min (5,vehicleCenter[1] + vehicle.length) + 1 # +1 for the threshold of for
+        for i in range(From,To):
+            route.append([vehicle.row,i])
+    else:
+        From = max(0,vehicleCenter[0] - vehicle.length)
+        To = min (5,vehicleCenter[0] + vehicle.length) + 1 # +1 for the threshold of for
+        for i in range(From,To):
+            route.append([i,vehicle.col])
+    return route
 
  
     
     
 
 def heuristic(state):
-    # Tính heuristic bằng cách lấy số ô mà xe chưa đi nhân chiều dài xe(là 2) + Chiều dài(coi như cost) của những chiếc xe nằm chắn đường xe mục tiêu 
-    
     heu = 0
-    # tính tổng số ô mà xe mục tiêu chưa đi
-    target_vehicle = state.get_target_vehicle()
-    if target_vehicle:
-        target_row, target_col = target_vehicle.row, target_vehicle.col
-        target_length = target_vehicle.length
+    cores = []  # Thay Queue bằng list - nhanh hơn
+    queue = []  # Thay Queue bằng list
+    
+    queue.append([state.get_vehicle_by_id(state.target_vehicle_id), []])
+    
+    # Thay NodeExpanded list bằng set cho O(1) lookup
+    node_expanded = set()  # Set of tuples thay vì list of lists
+    
+    while queue:  # Thay queue.empty() bằng while queue
         
-        # Tính số ô mà xe mục tiêu chưa đi
-        if target_vehicle.orientation == "H":
-            for i in range(target_col + target_length, 6):
-                if state.grid[target_row][i] != "X":
-                    heu += target_vehicle.length  # Chiều dài của xe mục tiêu
-      # Chiều dài của xe mục tiêu
-    
-    # Tính chiều dài của những chiếc xe nằm chắn đường xe mục tiêu
-    nameOfVehicleList = []
-    for i in range(min(5, target_col + 2),5,1):
-        if state.grid[target_row][i] != "X" and state.grid[target_row][i]!= ".":
-            nameOfVehicleList.append(state.grid[target_row][i])
+        vehicle_vehicleCenter = queue.pop(0)  # FIFO
+        vehicle = vehicle_vehicleCenter[0]
+        position = vehicle_vehicleCenter[1]
+        vehicleRunOver = vehicle.id
+        
+        for pos in routeShouldEmptyOfVehicle(vehicle, position, state): 
+            flag1 = False # 
+            flag2 = False # Không nên đưa xe vào queue  
+            if state.board[pos[0]][pos[1]] != ".":
+                vehicleGotRunOver = state.board[pos[0]][pos[1]]
+                
+                
+                    
+                if vehicleRunOver == vehicleGotRunOver:
+                    continue
+                
+                if vehicle.orientation == "H" and vehicle.is_target == 0:
+                    if pos[1] < position[1] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag1 = True
+                    elif pos[1] > position[1] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag2 = True
+                elif vehicle.orientation == "V" and vehicle.is_target == 0:
+                    if pos[0] < position[0] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag1 = True
+                    elif pos[0] > position[0] and state.board[pos[0]][pos[1]] != vehicleRunOver.id:
+                        flag2 = True
+                
+                # O(1) lookup thay vì O(n) loop
+                pair = (vehicleRunOver, vehicleGotRunOver)
+                if pair not in node_expanded and (flag1 or flag2):
+                    node_expanded.add(pair)
+                    cores.append([[vehicleRunOver, vehicleGotRunOver], pos])
 
-    for vehicle in state.vehicles:
-        if vehicle.id in nameOfVehicleList:
-            heu += vehicle.length
+                
+        while cores:  # Thay cores.empty() bằng while cores
+            heu += 1
+            core = cores.pop(0)
             
-            
+            for vehicle in state.vehicles:
+                if core[0][1] == vehicle.id and (flag1 or flag2):
+                    queue.append([vehicle, core[1]])
+                    break  # Break ngay khi tìm thấy
+                    
     return heu
-    
 
 # Thuật toán A*
 def aStar_solver(initial_state):
