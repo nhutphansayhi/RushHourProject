@@ -28,7 +28,7 @@ from solver.aStar_solver2 import aStar_solver
 class MultiAlgorithmTestGUI:
     
     CELL_SIZE = 75  # tile size in pixels
-    NUM_OF_MAPS = 14 # total testing maps
+    NUM_OF_MAPS = 15 # total testing maps
     
     def __init__(self, root):
         self.root = root
@@ -62,18 +62,33 @@ class MultiAlgorithmTestGUI:
         
         # Colors for vehicles
         self.vehicle_colors = {
-            'A': '#FF4444',  # Red for target car
-            'B': '#4444FF',  # Blue
-            'C': '#44FF44',  # Green
-            'D': '#FFFF44',  # Yellow
-            'E': '#FF44FF',  # Magenta
-            'F': '#44FFFF',  # Cyan
-            'G': '#FF8844',  # Orange
-            'H': '#8844FF',  # Purple
-            'I': '#44FF88',  # Light Green
-            'J': '#88FF44',  # Lime
-        }
-        
+            'A': '#FF0000',  # Pure Red
+            'B': '#0000FF',  # Pure Blue
+            'C': '#00FF00',  # Pure Green
+            'D': '#FFFF00',  # Pure Yellow
+            'E': '#FF00FF',  # Pure Magenta
+            'F': '#00FFFF',  # Pure Cyan
+            'G': '#FF8000',  # Orange
+            'H': '#8000FF',  # Purple
+            'I': '#80FF00',  # Lime Green
+            'J': '#FF0080',  # Hot Pink
+            'K': '#0080FF',  # Azure
+            'L': '#FF8080',  # Light Red
+            'M': '#80FF80',  # Light Green
+            'N': '#8080FF',  # Light Blue
+            'O': '#FFFF80',  # Light Yellow
+            'P': '#FF80FF',  # Light Magenta
+            'Q': '#80FFFF',  # Light Cyan
+            'R': '#FFA500',  # Gold
+            'S': '#800080',  # Dark Purple
+            'T': '#008000',  # Dark Green
+            'U': '#800000',  # Maroon
+            'V': '#000080',  # Navy
+            'W': '#808000',  # Olive
+            'X': '#DC143C',  # Crimson (Target vehicle)
+            'Y': '#4B0082',  # Indigo
+            'Z': '#2F4F4F',  # Dark Slate Gray
+        }        
         self.create_widgets()
         
     def create_widgets(self):
