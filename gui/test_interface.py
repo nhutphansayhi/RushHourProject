@@ -10,6 +10,7 @@ import sys
 import os
 import time
 import threading
+import tracemalloc
 
 # Add parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -335,9 +336,16 @@ class MultiAlgorithmTestGUI:
             # Run solver
             self.log_result(f"🚀 Running {algorithm_info['name']} solver...")
             
+            tracemalloc.start()
+            
             start_time = time.time()
+            
             result = algorithm_info['func'](initial_state)
+            
             end_time = time.time()
+            
+            current, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             
             solve_time = end_time - start_time
             
@@ -354,6 +362,7 @@ class MultiAlgorithmTestGUI:
                 self.log_result(f"   Cost: {cost}")
                 self.log_result(f"   Steps: {steps}")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
+                self.log_result(f"   Memory (peak): {peak / 1024:.2f} KB")
                 
                 if nodes_expanded is not None:
                     self.log_result(f"   Nodes expanded: {nodes_expanded}")
@@ -382,6 +391,7 @@ class MultiAlgorithmTestGUI:
             else:
                 self.log_result(f"❌ NO SOLUTION FOUND")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
+                self.log_result(f"   Memory (peak): {peak / 1024:.2f} KB")
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution with {algorithm_name}"))
             
         except Exception as e:
@@ -419,8 +429,6 @@ class MultiAlgorithmTestGUI:
             self.update_board_display(initial_state)
             self.status_label.config(text=f"Map {map_id} loaded")
             self.step_label.config(text="Step: 0/0")
-            # self.reset_button.config(state=tk.DISABLED)
-            # self.prev_button.config(state=tk.DISABLED)
             self._update_playback_controls()
             
             current = int(self.map_var.get())
