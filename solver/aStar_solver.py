@@ -120,7 +120,6 @@ class PriorityQueue:
     
 
 def heuristic(state):
-    # Tính heuristic bằng cách lấy số ô mà xe chưa đi nhân chiều dài xe(là 2) + Chiều dài(coi như cost) của những chiếc xe nằm chắn đường xe mục tiêu 
     
     heu = 0
     # tính tổng số ô mà xe mục tiêu chưa đi
@@ -145,7 +144,6 @@ def heuristic(state):
     for vehicle in state.vehicles:
         if vehicle.id in nameOfVehicleList:
             heu += vehicle.length
-            
             
     return heu
     
