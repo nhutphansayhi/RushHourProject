@@ -222,7 +222,11 @@ def aStar_solver(initial_state):
         nodes_expanded += 1
         
         if state.is_solved():
-            return len(path), nodes_expanded, path
+            cost = 0
+            for vehicle_id, _ in path:
+                cost += state.get_vehicle_by_id(vehicle_id).length
+
+            return cost, nodes_expanded, path
         
         possible_moves = state.get_all_possible_moves()
         for vehicle_id, direction in possible_moves:

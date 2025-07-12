@@ -13,7 +13,10 @@ def dfs_solver(start_state, max_depth=100000):
         visited.add(state_key)
 
         if current_state.is_solved():
-            return len(path), node_expanded, path
+            cost = 0
+            for vehicle_id, _ in path:
+                cost += current_state.get_vehicle_by_id(vehicle_id).length
+            return cost, node_expanded, path
 
         if len(path) >= max_depth:
             continue  # Prevent infinite loops

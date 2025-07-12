@@ -272,7 +272,7 @@ class MultiAlgorithmTestGUI:
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
 
     def get_resized_car_image(self, vehicle): # lấy ảnh xe và cả resize
-        path = os.path.join("gui", f"images\\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
+        path = os.path.join("gui", f"images/{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
             width = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else self.CELL_SIZE

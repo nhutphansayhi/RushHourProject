@@ -34,10 +34,12 @@ def bfs_solver(initial_state):
                 visited.add(state_string)
                 new_path = path + [(vehicle_id, direction)]
                 
-                if new_state.is_solved():
-                    return len(new_path), nodes_expanded, new_path
-                
                 q.put((new_state, new_path))
+                if new_state.is_solved():
+                    # cost = 0
+                    # for vehicle_id, _ in new_path:
+                    #     cost += new_state.get_vehicle_by_id(vehicle_id).length
+                    return len(new_path), nodes_expanded, new_path
     return None, 0, nodes_expanded
 
 # def main():
