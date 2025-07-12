@@ -22,17 +22,12 @@ from utils.state import State
 from solver.bfs_solver import bfs_solver
 from solver.dfs_solver import dfs_solver
 from solver.ucs_solver import ucs
-
-
-try:
-    from solver.aStar_solver import aStar_solver
-except ImportError:
-    aStar_solver = None
+from solver.aStar_solver import aStar_solver
 
 class MultiAlgorithmTestGUI:
     
-    CELL_SIZE = 80  # tile size in pixels
-    NUM_OF_MAPS = 12 # total testing maps
+    CELL_SIZE = 75  # tile size in pixels
+    NUM_OF_MAPS = 14 # total testing maps
     
     def __init__(self, root):
         self.root = root
@@ -44,10 +39,8 @@ class MultiAlgorithmTestGUI:
         self.original_state = None
         self.solution_path = []
         self.current_step = 0
-        self.test_results = []
         self.is_running_test = False
         self.is_auto_playing = False
-        self.selected_vehicle = None
         
         # Available algorithms
         self.algorithms = {}
@@ -281,7 +274,7 @@ class MultiAlgorithmTestGUI:
     def clear_results(self):
         """Clear the results text area"""
         self.results_text.delete(1.0, tk.END)
-        self.test_results = []
+        # self.test_results = []
         self.status_label.config(text="Select a map to test")
         self.update_board_display(None)
     
@@ -386,27 +379,10 @@ class MultiAlgorithmTestGUI:
                 else:
                     self.log_result(f"\n📋 Solution path has {steps} steps (too long to display)")
                 
-                # Store result
-                self.test_results.append({
-                    'map_id': map_id,
-                    'algorithm': algorithm_name,
-                    'success': True,
-                    'cost': cost,
-                    'steps': steps,
-                    'time': solve_time
-                })
-                
             else:
                 self.log_result(f"❌ NO SOLUTION FOUND")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution with {algorithm_name}"))
-                
-                self.test_results.append({
-                    'map_id': map_id,
-                    'algorithm': algorithm_name,
-                    'success': False,
-                    'time': solve_time
-                })
             
         except Exception as e:
             self.log_result(f"💥 ERROR: {str(e)}")
