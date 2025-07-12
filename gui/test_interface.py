@@ -10,6 +10,7 @@ import sys
 import os
 import time
 import threading
+import tracemalloc
 
 # Add parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,17 +23,12 @@ from utils.state import State
 from solver.bfs_solver import bfs_solver
 from solver.dfs_solver import dfs_solver
 from solver.ucs_solver import ucs
-
-
-try:
-    from solver.a_star_solver import aStar_solver
-except ImportError:
-    aStar_solver = None
+from solver.aStar_solver import aStar_solver
 
 class MultiAlgorithmTestGUI:
     
-    CELL_SIZE = 80  # tile size in pixels
-    NUM_OF_MAPS = 12 # total testing maps
+    CELL_SIZE = 75  # tile size in pixels
+    NUM_OF_MAPS = 15 # total testing maps
     
     def __init__(self, root):
         self.root = root
@@ -44,10 +40,8 @@ class MultiAlgorithmTestGUI:
         self.original_state = None
         self.solution_path = []
         self.current_step = 0
-        self.test_results = []
         self.is_running_test = False
         self.is_auto_playing = False
-        self.selected_vehicle = None
         
         # Available algorithms
         self.algorithms = {}
@@ -68,18 +62,33 @@ class MultiAlgorithmTestGUI:
         
         # Colors for vehicles
         self.vehicle_colors = {
-            'A': '#FF4444',  # Red for target car
-            'B': '#4444FF',  # Blue
-            'C': '#44FF44',  # Green
-            'D': '#FFFF44',  # Yellow
-            'E': '#FF44FF',  # Magenta
-            'F': '#44FFFF',  # Cyan
-            'G': '#FF8844',  # Orange
-            'H': '#8844FF',  # Purple
-            'I': '#44FF88',  # Light Green
-            'J': '#88FF44',  # Lime
-        }
-        
+            'A': '#FF0000',  # Pure Red
+            'B': '#0000FF',  # Pure Blue
+            'C': '#00FF00',  # Pure Green
+            'D': '#FFFF00',  # Pure Yellow
+            'E': '#FF00FF',  # Pure Magenta
+            'F': '#00FFFF',  # Pure Cyan
+            'G': '#FF8000',  # Orange
+            'H': '#8000FF',  # Purple
+            'I': '#80FF00',  # Lime Green
+            'J': '#FF0080',  # Hot Pink
+            'K': '#0080FF',  # Azure
+            'L': '#FF8080',  # Light Red
+            'M': '#80FF80',  # Light Green
+            'N': '#8080FF',  # Light Blue
+            'O': '#FFFF80',  # Light Yellow
+            'P': '#FF80FF',  # Light Magenta
+            'Q': '#80FFFF',  # Light Cyan
+            'R': '#FFA500',  # Gold
+            'S': '#800080',  # Dark Purple
+            'T': '#008000',  # Dark Green
+            'U': '#800000',  # Maroon
+            'V': '#000080',  # Navy
+            'W': '#808000',  # Olive
+            'X': '#DC143C',  # Crimson (Target vehicle)
+            'Y': '#4B0082',  # Indigo
+            'Z': '#2F4F4F',  # Dark Slate Gray
+        }        
         self.create_widgets()
         
     def create_widgets(self):
@@ -281,7 +290,7 @@ class MultiAlgorithmTestGUI:
     def clear_results(self):
         """Clear the results text area"""
         self.results_text.delete(1.0, tk.END)
-        self.test_results = []
+        # self.test_results = []
         self.status_label.config(text="Select a map to test")
         self.update_board_display(None)
     
@@ -342,9 +351,16 @@ class MultiAlgorithmTestGUI:
             # Run solver
             self.log_result(f"🚀 Running {algorithm_info['name']} solver...")
             
+            tracemalloc.start()
+            
             start_time = time.time()
+            
             result = algorithm_info['func'](initial_state)
+            
             end_time = time.time()
+            
+            current, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             
             solve_time = end_time - start_time
             
@@ -361,6 +377,7 @@ class MultiAlgorithmTestGUI:
                 self.log_result(f"   Cost: {cost}")
                 self.log_result(f"   Steps: {steps}")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
+                self.log_result(f"   Memory (peak): {peak / 1024:.2f} KB")
                 
                 if nodes_expanded is not None:
                     self.log_result(f"   Nodes expanded: {nodes_expanded}")
@@ -386,27 +403,11 @@ class MultiAlgorithmTestGUI:
                 else:
                     self.log_result(f"\n📋 Solution path has {steps} steps (too long to display)")
                 
-                # Store result
-                self.test_results.append({
-                    'map_id': map_id,
-                    'algorithm': algorithm_name,
-                    'success': True,
-                    'cost': cost,
-                    'steps': steps,
-                    'time': solve_time
-                })
-                
             else:
                 self.log_result(f"❌ NO SOLUTION FOUND")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
+                self.log_result(f"   Memory (peak): {peak / 1024:.2f} KB")
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution with {algorithm_name}"))
-                
-                self.test_results.append({
-                    'map_id': map_id,
-                    'algorithm': algorithm_name,
-                    'success': False,
-                    'time': solve_time
-                })
             
         except Exception as e:
             self.log_result(f"💥 ERROR: {str(e)}")
@@ -443,8 +444,6 @@ class MultiAlgorithmTestGUI:
             self.update_board_display(initial_state)
             self.status_label.config(text=f"Map {map_id} loaded")
             self.step_label.config(text="Step: 0/0")
-            # self.reset_button.config(state=tk.DISABLED)
-            # self.prev_button.config(state=tk.DISABLED)
             self._update_playback_controls()
             
             current = int(self.map_var.get())

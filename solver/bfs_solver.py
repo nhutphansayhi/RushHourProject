@@ -31,4 +31,3 @@ def bfs_solver(initial_state):
                 if new_state.is_solved():
                     return len(new_path), nodes_expanded, new_path
     return None, 0, nodes_expanded
-
