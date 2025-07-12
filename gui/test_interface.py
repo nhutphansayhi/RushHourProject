@@ -19,21 +19,10 @@ sys.path.insert(0, parent_dir)
 from utils.utils import import_map
 from utils.state import State
 
-# Import all available solvers
-try:
-    from solver.bfs_solver import bfs_solver
-except ImportError:
-    bfs_solver = None
+from solver.bfs_solver import bfs_solver
+from solver.dfs_solver import dfs_solver
+from solver.ucs_solver import ucs
 
-try:
-    from solver.dfs_solver import dfs_solver
-except ImportError:
-    dfs_solver = None
-
-try:
-    from solver.ucs_solver import ucs
-except ImportError:
-    ucs = None
 
 try:
     from solver.a_star_solver import aStar_solver
@@ -62,10 +51,10 @@ class MultiAlgorithmTestGUI:
         
         # Available algorithms
         self.algorithms = {}
-        if bfs_solver:
-            self.algorithms['BFS'] = {'func': bfs_solver, 'name': 'Breadth-First Search'}
         if dfs_solver:
             self.algorithms['DFS'] = {'func': dfs_solver, 'name': 'Depth-First Search'}
+        if bfs_solver:
+            self.algorithms['BFS'] = {'func': bfs_solver, 'name': 'Breadth-First Search'}
         if ucs:
             self.algorithms['UCS'] = {'func': ucs, 'name': 'Uniform Cost Search'}
         if aStar_solver:
@@ -127,7 +116,7 @@ class MultiAlgorithmTestGUI:
         self.decrease_map_button.grid(row=0, column=3, padx=(0, 2))
 
         # Map combobox
-        self.map_var = tk.StringVar(value="1")
+        self.map_var = tk.StringVar(value="")
         self.map_combo = ttk.Combobox(first_row, textvariable=self.map_var, values=[str(i) for i in range(1, self.NUM_OF_MAPS + 1)], width=5, state="readonly")
         self.map_combo.grid(row=0, column=4, padx=(0, 2))
         self.map_combo.bind("<<ComboboxSelected>>", lambda e: self.load_map())
@@ -454,8 +443,9 @@ class MultiAlgorithmTestGUI:
             self.update_board_display(initial_state)
             self.status_label.config(text=f"Map {map_id} loaded")
             self.step_label.config(text="Step: 0/0")
-            self.reset_button.config(state=tk.DISABLED)
-            self.prev_button.config(state=tk.DISABLED)
+            # self.reset_button.config(state=tk.DISABLED)
+            # self.prev_button.config(state=tk.DISABLED)
+            self._update_playback_controls()
             
             current = int(self.map_var.get())
             self.decrease_map_button.config(state=tk.NORMAL if current > 1 else tk.DISABLED)

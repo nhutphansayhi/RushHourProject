@@ -1,11 +1,4 @@
-import sys
-import os
 import queue
-
-# Add parent directory to path to access utils
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from utils import Vehicle, State, import_map
 
 def bfs_solver(initial_state):
     
@@ -35,6 +28,7 @@ def bfs_solver(initial_state):
                 new_path = path + [(vehicle_id, direction)]
                 
                 q.put((new_state, new_path))
+<<<<<<< HEAD
                 if new_state.is_solved():
                     # cost = 0
                     # for vehicle_id, _ in new_path:
@@ -139,3 +133,6 @@ def bfs_solver(initial_state):
 # if __name__ == "__main__":
 #     main()
 
+=======
+    return None, 0, nodes_expanded
+>>>>>>> 70fd0b924307a5c4b2707570d70c185b611d15c6
