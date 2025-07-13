@@ -5,7 +5,7 @@ sys.setrecursionlimit(5000)
 def dfs_handler(current_state, path, visited, node_expanded, cancel_flag):
     
     if cancel_flag and cancel_flag.is_set():
-            return None
+        return None
     
     node_expanded[0] += 1
     state_key = current_state.to_string()

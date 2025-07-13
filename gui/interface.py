@@ -179,7 +179,7 @@ class MultiAlgorithmTestGUI:
         ground = ImageTk.PhotoImage(ground)
         self.image_refs.append(ground)
         
-        road = Image.open(os.path.join(current_dir, "images","road.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
+        road = Image.open(os.path.join(current_dir, "images","road.png")).resize((self.CELL_SIZE, self.CELL_SIZE))
         road = ImageTk.PhotoImage(road)
         self.image_refs.append(road)
         
@@ -358,7 +358,6 @@ class MultiAlgorithmTestGUI:
             
             self.log_result(f"{'='*60}")
             self.log_result(f"Testing Map {map_id} with {algorithm_info['name']}")
-            self.log_result(f"{'='*60}")
             
             # Load vehicles
             vehicles = import_map(map_id)
@@ -454,7 +453,7 @@ class MultiAlgorithmTestGUI:
             self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Error with {algorithm_name}"))
         
         finally:
-            # Re-enable buttons
+            self.log_result(f"{'='*60}")
             self.root.after(0, self._test_complete)
     
     def _test_complete(self):
@@ -645,11 +644,3 @@ class MultiAlgorithmTestGUI:
             self.play_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
             self.next_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
             self.end_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
-
-def main():
-    root = tk.Tk() # môt TK object đại diện cho cửa sổ chính của ứng dụng
-    MultiAlgorithmTestGUI(root)
-    root.mainloop()
-  
-if __name__ == "__main__":
-    main()
