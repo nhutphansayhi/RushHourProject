@@ -123,7 +123,7 @@ def heuristic(state):
     
     heu = 0
     # tính tổng số ô mà xe mục tiêu chưa đi
-    target_vehicle = state.get_target_vehicle()
+    target_vehicle = state.vehicles[0]
     if target_vehicle:
         target_row, target_col = target_vehicle.row, target_vehicle.col
         target_length = target_vehicle.length
@@ -131,15 +131,15 @@ def heuristic(state):
         # Tính số ô mà xe mục tiêu chưa đi
         if target_vehicle.orientation == "H":
             for i in range(target_col + target_length, 6):
-                if state.grid[target_row][i] != "X":
+                if state.board[target_row][i] != "X":
                     heu += target_vehicle.length  # Chiều dài của xe mục tiêu
       # Chiều dài của xe mục tiêu
     
     # Tính chiều dài của những chiếc xe nằm chắn đường xe mục tiêu
     nameOfVehicleList = []
     for i in range(min(5, target_col + 2),5,1):
-        if state.grid[target_row][i] != "X" and state.grid[target_row][i]!= ".":
-            nameOfVehicleList.append(state.grid[target_row][i])
+        if state.board[target_row][i] != "X" and state.board[target_row][i]!= ".":
+            nameOfVehicleList.append(state.board[target_row][i])
 
     for vehicle in state.vehicles:
         if vehicle.id in nameOfVehicleList:

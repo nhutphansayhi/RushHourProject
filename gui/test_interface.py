@@ -23,7 +23,7 @@ from utils.state import State
 from solver.bfs_solver import bfs_solver
 from solver.dfs_solver import dfs_solver
 from solver.ucs_solver import ucs
-from solver.aStar_solver2 import aStar_solver
+from solver.aStar_solver import aStar_solver
 
 class MultiAlgorithmTestGUI:
     
