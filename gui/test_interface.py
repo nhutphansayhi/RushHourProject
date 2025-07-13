@@ -172,28 +172,49 @@ class MultiAlgorithmTestGUI:
         board_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
         
         # Game grid
-        self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE, bg="#3e3e3e")
+        self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE)
         self.canvas.grid(row=0, column=0)
         
-        # Left
-        self.canvas.create_rectangle(0, 0, self.CELL_SIZE, self.CELL_SIZE * 8, fill='#737272', outline="")
+        ground = Image.open(os.path.join("gui", f"images\\ground.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
+        ground = ImageTk.PhotoImage(ground)
+        self.image_refs.append(ground)
         
-        self.canvas.create_rectangle(0, self.CELL_SIZE * 3, self.CELL_SIZE, self.CELL_SIZE * 4, fill='#3e3e3e', outline="")
+        road = Image.open(os.path.join("gui", f"images\\road.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
+        road = ImageTk.PhotoImage(road)
+        self.image_refs.append(road)
+        
+        # Background
+        for i in range(8):
+            for j in range(8):
+                self.canvas.create_image(self.CELL_SIZE * i, self.CELL_SIZE * j, anchor="nw", image=ground)
+        
+        # Top
+        for i in range(1, 7):
+            self.canvas.create_image(self.CELL_SIZE * i, 0, anchor="nw", image=road)
+        
+        # Left
+        for i in range(8):
+            self.canvas.create_image(0, self.CELL_SIZE * i, anchor="nw", image=road)
+        self.canvas.create_image(0, self.CELL_SIZE * 3, anchor="nw", image=ground)
         
         # Right
-        self.canvas.create_rectangle(self.CELL_SIZE * 7, 0, self.CELL_SIZE * 8, self.CELL_SIZE * 8, fill='#737272', outline="")
+        for i in range(8):
+            self.canvas.create_image(self.CELL_SIZE * 7, self.CELL_SIZE * i, anchor="nw", image=road)
+        self.canvas.create_image(self.CELL_SIZE * 7, self.CELL_SIZE * 3, anchor="nw", image=ground)
         
-        self.canvas.create_rectangle(self.CELL_SIZE * 7, self.CELL_SIZE * 3, self.CELL_SIZE * 8, self.CELL_SIZE * 4, fill='#3e3e3e', outline="")
+        # Bottom
+        for i in range(1, 7):
+            self.canvas.create_image(self.CELL_SIZE * i, self.CELL_SIZE * 7, anchor="nw", image=road)
         
         # Enter indicator
         enter_x = 0 * self.CELL_SIZE + self.CELL_SIZE // 2
         enter_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
-        self.canvas.create_text(enter_x, enter_y, text="→", font=('Arial', 12, 'bold'), fill='white', tags="static")
+        self.canvas.create_text(enter_x, enter_y, text="→", font=('Arial', 24, 'bold'), fill='white', tags="static")
         
         # Exit indicator
         exit_x = 7 * self.CELL_SIZE + self.CELL_SIZE // 2
         exit_y = 3 * self.CELL_SIZE + self.CELL_SIZE // 2
-        self.canvas.create_text(exit_x, exit_y, text="→", font=('Arial', 12, 'bold'), fill='white', tags="static")
+        self.canvas.create_text(exit_x, exit_y, text="→", font=('Arial', 24, 'bold'), fill='white', tags="static")
         
         # Board info
         self.board_info_frame = ttk.Frame(board_frame)
@@ -268,9 +289,9 @@ class MultiAlgorithmTestGUI:
                 
                 self.canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline='black', tags="vehicle")
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
-
+                
     def get_resized_car_image(self, vehicle): # lấy ảnh xe và cả resize
-        path = os.path.join("gui", f"images/{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
+        path = os.path.join("gui", f"images\\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
             width = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else self.CELL_SIZE
