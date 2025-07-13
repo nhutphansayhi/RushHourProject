@@ -154,7 +154,7 @@ class MultiAlgorithmTestGUI:
         self.prev_button = ttk.Button(second_row, text="⏪ Previous", command=self.previous_step, state=tk.DISABLED)
         self.prev_button.grid(row=0, column=2, padx=(0, 5))
         
-        self.play_button = ttk.Button(second_row, text="▶ Play/Pause", command=self.auto_play, state=tk.DISABLED)
+        self.play_button = ttk.Button(second_row, text="▶ Play", command=self.auto_play, state=tk.DISABLED)
         self.play_button.grid(row=0, column=3, padx=(0, 5))
         
         self.next_button = ttk.Button(second_row, text="⏩ Next", command=self.next_step, state=tk.DISABLED)
@@ -309,20 +309,37 @@ class MultiAlgorithmTestGUI:
         self.root.update()
     
     def clear_results(self):
-        """Clear the results text area"""
+        # Clear the results text area
         self.results_text.delete(1.0, tk.END)
-        # self.test_results = []
+        
+        # Reset to initial state
+        self.current_state = self.original_state
+        self.current_step = 0
+        self.solution_path = []
+        
+        # Update GUI
+        self.map_var.set("")
         self.status_label.config(text="Select a map to test")
         self.update_board_display(None)
+        self._update_playback_controls()
+        
+    def cancel_solving(self):
+        self.cancel_flag.set()
+        self.clear_button.config(text="Cancelling...")
     
     def test_map(self):
-        """Test a single map"""
+        """Solve a map with the chosen algorithm"""
         if self.is_running_test:
             return
         
         map_id = int(self.map_var.get())
         self.is_running_test = True
-        self.test_button.config(state=tk.DISABLED)
+        # self.test_button.config(state=tk.DISABLED)
+        self._update_playback_controls()
+        
+        # Set up cancel flag and change Clear button to Cancel
+        self.cancel_flag = threading.Event()
+        self.clear_button.config(text="Cancel", command=self.cancel_solving, state=tk.NORMAL)
         
         # Run test in separate thread
         thread = threading.Thread(target=self._test_map_thread, args=(map_id,))
@@ -330,13 +347,13 @@ class MultiAlgorithmTestGUI:
         thread.start()
     
     def _test_map_thread(self, map_id):
-        """Thread function for testing a single map"""
+        """Thread function for testing the chosen map"""
         try:
             algorithm_name = self.algorithm_var.get()
             algorithm_info = self.algorithms.get(algorithm_name)
             
             if not algorithm_info:
-                self.log_result(f"❌ Algorithm '{algorithm_name}' not available")
+                self.log_result(f" Algorithm '{algorithm_name}' not available")
                 return
             
             self.log_result(f"{'='*60}")
@@ -346,7 +363,7 @@ class MultiAlgorithmTestGUI:
             # Load vehicles
             vehicles = import_map(map_id)
             if not vehicles:
-                self.log_result(f"❌ Failed to load map{map_id}.txt")
+                self.log_result(f" Failed to load map{map_id}.txt")
                 return
             
             self.log_result(f"Loaded {len(vehicles)} vehicles:")
@@ -365,27 +382,29 @@ class MultiAlgorithmTestGUI:
             
             # Check if already solved
             if initial_state.is_solved():
-                self.log_result("✅ Puzzle is already solved!")
+                self.log_result(" Puzzle is already solved!")
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Already solved"))
                 return
             
             # Run solver
-            self.log_result(f"🚀 Running {algorithm_info['name']} solver...")
+            self.log_result(f" Running {algorithm_info['name']} solver...")
             
             tracemalloc.start()
-            
             start_time = time.time()
             
-            result = algorithm_info['func'](initial_state)
-            
+            result = algorithm_info['func'](initial_state, cancel_flag=self.cancel_flag)
             end_time = time.time()
             
-            current, peak = tracemalloc.get_traced_memory()
+            _, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
-            
             solve_time = end_time - start_time
             
-            if result and result[0] is not None:
+            if self.cancel_flag.is_set():
+                self.log_result(" SOLVING CANCELED!")
+                self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Solving canceled"))
+                return
+            
+            elif result and result[0] is not None:
                 
                 cost, nodes_expanded, path = result
                 steps = len(path)
@@ -394,7 +413,7 @@ class MultiAlgorithmTestGUI:
                 self.solution_path = path
                 self.current_step = 0
                 
-                self.log_result(f"✅ SOLUTION FOUND!")
+                self.log_result(f" SOLUTION FOUND!")
                 self.log_result(f"   Cost: {cost}")
                 self.log_result(f"   Steps: {steps}")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
@@ -414,7 +433,7 @@ class MultiAlgorithmTestGUI:
                 
                 # Show solution path
                 if steps <= 20:  # Show path for reasonable length solutions
-                    self.log_result(f"\n📋 Solution Path:")
+                    self.log_result(f"\n Solution Path:")
                     for i, move in enumerate(path, 1):
                         if isinstance(move, tuple) and len(move) == 2:
                             vehicle_id, direction = move
@@ -422,16 +441,16 @@ class MultiAlgorithmTestGUI:
                         else:
                             self.log_result(f"   {i:2d}. {move}")
                 else:
-                    self.log_result(f"\n📋 Solution path has {steps} steps (too long to display)")
+                    self.log_result(f"\n Solution path has {steps} steps (too long to display)")
                 
             else:
-                self.log_result(f"❌ NO SOLUTION FOUND")
+                self.log_result(f" NO SOLUTION FOUND")
                 self.log_result(f"   Time: {solve_time:.3f} seconds")
                 self.log_result(f"   Memory (peak): {peak / 1024:.2f} KB")
                 self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: No solution with {algorithm_name}"))
             
         except Exception as e:
-            self.log_result(f"💥 ERROR: {str(e)}")
+            self.log_result(f" ERROR: {str(e)}")
             self.root.after(0, lambda: self.status_label.config(text=f"Map {map_id}: Error with {algorithm_name}"))
         
         finally:
@@ -441,8 +460,10 @@ class MultiAlgorithmTestGUI:
     def _test_complete(self):
         """Called when testing is complete"""
         self.is_running_test = False
-        self.test_button.config(state=tk.NORMAL)
-        self.comp_test_button.config(state=tk.NORMAL)
+        self._update_playback_controls()
+        
+        # Restore the clear button
+        self.clear_button.config(text="Clear", command=self.clear_results, state=tk.NORMAL)
     
     def load_map(self):
         """Load a map without solving it"""
@@ -521,18 +542,7 @@ class MultiAlgorithmTestGUI:
             self.reset_to_start()
         
         self.is_auto_playing = True
-        
-        self.algorithm_combo.config(state='disabled')
-        self.increase_map_button.config(state=tk.DISABLED)
-        self.map_combo.config(state='disabled')
-        self.decrease_map_button.config(state=tk.DISABLED)
-        self.test_button.config(state=tk.DISABLED)
-        self.clear_button.config(state=tk.DISABLED)
-        self.reset_button.config(state=tk.DISABLED)
-        self.prev_button.config(state=tk.DISABLED)
-        self.next_button.config(state=tk.DISABLED)
-        self.end_button.config(state=tk.DISABLED)
-        
+        self._update_playback_controls()
         self.play_button.config(text="⏸ Pause", command=self.pause_auto_play)
         
         self._auto_play_step()
@@ -540,19 +550,9 @@ class MultiAlgorithmTestGUI:
     def pause_auto_play(self):
         """Pause auto-play"""
         self.is_auto_playing = False
+        self._update_playback_controls()
         
-        self.algorithm_combo.config(state='readonly')
-        self.increase_map_button.config(state=tk.NORMAL)
-        self.map_combo.config(state='normal')
-        self.decrease_map_button.config(state=tk.NORMAL)
-        self.test_button.config(state=tk.NORMAL)
-        self.clear_button.config(state=tk.NORMAL)
-        self.reset_button.config(state=tk.NORMAL)
-        self.prev_button.config(state=tk.NORMAL)
-        self.next_button.config(state=tk.NORMAL)
-        self.end_button.config(state=tk.NORMAL)
-        
-        self.play_button.config(text="▶ Auto Play", command=self.auto_play)
+        self.play_button.config(text="▶ Play", command=self.auto_play)
     
     def _auto_play_step(self):
         """Execute one step of auto-play"""
@@ -617,9 +617,29 @@ class MultiAlgorithmTestGUI:
         has_solution = bool(self.solution_path)
         at_start = self.current_step == 0
         at_end = self.current_step >= len(self.solution_path)
+        current_map = int(self.map_var.get())
         
         # Enable/disable buttons based on state
-        if not self.is_auto_playing:
+        if self.is_running_test or self.is_auto_playing:
+            self.algorithm_combo.config(state='disabled')
+            self.increase_map_button.config(state=tk.DISABLED)
+            self.map_combo.config(state='disabled')
+            self.decrease_map_button.config(state=tk.DISABLED)
+            self.test_button.config(state=tk.DISABLED)
+            self.clear_button.config(state=tk.DISABLED if self.is_auto_playing else tk.NORMAL)
+            self.reset_button.config(state=tk.DISABLED)
+            self.prev_button.config(state=tk.DISABLED)
+            self.play_button.config(state=tk.DISABLED if self.is_running_test else tk.NORMAL)
+            self.next_button.config(state=tk.DISABLED)
+            self.end_button.config(state=tk.DISABLED)
+            
+        else:
+            self.algorithm_combo.config(state='readonly')
+            self.increase_map_button.config(state=tk.NORMAL if current_map < self.NUM_OF_MAPS else tk.DISABLED)
+            self.map_combo.config(state='readonly')
+            self.decrease_map_button.config(state=tk.NORMAL if current_map > 1 else tk.DISABLED)
+            self.test_button.config(state=tk.NORMAL)
+            self.clear_button.config(state=tk.NORMAL)
             self.reset_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
             self.prev_button.config(state=tk.NORMAL if has_solution and not at_start else tk.DISABLED)
             self.play_button.config(state=tk.NORMAL if has_solution and not at_end else tk.DISABLED)
