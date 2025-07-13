@@ -10,7 +10,7 @@ from utils.vehicle import Vehicle
 GRID_COL = 6
 GRID_ROW = 6
 
-def ucs(initial_state):
+def ucs(initial_state, cancel_flag=None):
     pq = []
     counter = 0
     expanded_nodes = 0
@@ -18,6 +18,9 @@ def ucs(initial_state):
     frontier = set()
     
     while pq:
+        if cancel_flag and cancel_flag.is_set():
+            return None
+        
         cost, _, curr_state, path = heapq.heappop(pq)
         
         if (curr_state in frontier):

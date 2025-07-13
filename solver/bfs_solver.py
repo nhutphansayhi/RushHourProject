@@ -1,6 +1,6 @@
 import queue
 
-def bfs_solver(initial_state):
+def bfs_solver(initial_state, cancel_flag=None):
     
     if initial_state.is_solved():
         return [], 0, 0
@@ -11,6 +11,9 @@ def bfs_solver(initial_state):
     nodes_expanded = 0
     visited.add(initial_state.to_string())
     while not q.empty():
+        if cancel_flag and cancel_flag.is_set():
+            return None
+        
         current_state, path = q.get()
         nodes_expanded += 1
         possible_moves = current_state.get_all_possible_moves()

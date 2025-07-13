@@ -1,16 +1,15 @@
-from collections import deque
-import copy
-import time
 import heapq
-from queue import Queue
 import sys
 import os
+
 # Thư viện cần thiết
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_dir)
-from utils.state import State
-from utils.vehicle import Vehicle
-from utils.utils import import_map
+
+# from utils.state import State
+# from utils.vehicle import Vehicle
+# from utils.utils import import_map
+
 # Biểu diễn trạng thái trò chơi
 # class State:
 #     def __init__(self, vehicles):
@@ -114,13 +113,7 @@ class PriorityQueue:
     def size(self):
         return len(self._queue)
 
-
- 
-    
-    
-
 def heuristic(state):
-    
     heu = 0
     # tính tổng số ô mà xe mục tiêu chưa đi
     target_vehicle = state.vehicles[0]
@@ -149,7 +142,7 @@ def heuristic(state):
     
 
 # Thuật toán A*
-def aStar_solver(initial_state):
+def aStar_solver(initial_state, cancel_flag=None):
     queue = PriorityQueue()
     
     # B: Cache initial state string
@@ -158,6 +151,9 @@ def aStar_solver(initial_state):
     nodes_expanded = 0
     
     while not queue.is_empty():
+        if cancel_flag and cancel_flag.is_set():
+            return None
+        
         state, path = queue.get()
         
         # B: Cache state string - tính 1 lần duy nhất
