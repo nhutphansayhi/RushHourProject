@@ -175,11 +175,11 @@ class MultiAlgorithmTestGUI:
         self.canvas = tk.Canvas(board_frame, width=(6 + 2) * self.CELL_SIZE, height=(6 + 2) * self.CELL_SIZE)
         self.canvas.grid(row=0, column=0)
         
-        ground = Image.open(os.path.join("gui", f"images\\ground.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
+        ground = Image.open(os.path.join(current_dir,"images","ground.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
         ground = ImageTk.PhotoImage(ground)
         self.image_refs.append(ground)
         
-        road = Image.open(os.path.join("gui", f"images\\road.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
+        road = Image.open(os.path.join(current_dir, "images","road.jpg")).resize((self.CELL_SIZE, self.CELL_SIZE))
         road = ImageTk.PhotoImage(road)
         self.image_refs.append(road)
         
@@ -291,7 +291,7 @@ class MultiAlgorithmTestGUI:
                 self.canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text=vehicle.id, font=("Arial", 16, "bold"), tags="vehicle")
                 
     def get_resized_car_image(self, vehicle): # lấy ảnh xe và cả resize
-        path = os.path.join("gui", f"images\\{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
+        path = os.path.join(current_dir,"images",f"{vehicle.id}_{vehicle.length}_{vehicle.orientation}.png")
         try:
             image = Image.open(path)
             width = self.CELL_SIZE * vehicle.length if vehicle.orientation == 'H' else self.CELL_SIZE

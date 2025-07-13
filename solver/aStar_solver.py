@@ -183,7 +183,7 @@ def aStar_solver(initial_state):
             new_state_key = new_state.to_string()
             if new_state_key not in visited:
                 new_path = path + [(vehicle_id, direction)]
-                g_cost = len(new_path)
+                g_cost = len(new_path)* 2  # Chi phí g là số bước đã đi nhân với 2
                 h_cost = heuristic(new_state)
                 f_cost = g_cost + h_cost
                 queue.put((new_state, new_path), f_cost)
